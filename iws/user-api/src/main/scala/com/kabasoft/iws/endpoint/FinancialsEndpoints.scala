@@ -85,9 +85,6 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
     }
 }
 object FinancialsEndpoints {
-  def apply[F[_]: Effect](
-    service: FinancialsTransactionService[F],
-    service2: FinancialsTransactionDetailsService[F]
-  ): HttpRoutes[F] =
+  def apply[F[_]: Effect](service: FinancialsTransactionService[F]): HttpRoutes[F] =
     new FinancialsEndpoints[F].routes(service)
 }

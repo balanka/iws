@@ -308,14 +308,8 @@ final case class Journal(
   credit: BigDecimal
 )
 object Journal {
-  //type Journal_Type = (Long, Long, Long, String, String, Instant, Instant, Instant,
-  //  Int, BigDecimal, Boolean, String, String, String, Int, Int, Int,BigDecimal,
-  //  BigDecimal, Int, Int, BigDecimal, BigDecimal )
 
-  def apply(x: Journal) = {
-    println("transdate ::: " + x.transdate);
-    println("transdate ::: " + x.postingdate);
-    println("transdate ::: " + x.enterdate);
+  def apply(x: Journal) =
     new Journal(
       x.id,
       x.transid,
@@ -341,9 +335,26 @@ object Journal {
       x.debit,
       x.credit
     )
-  }
 }
 
+final case class BankStatement(
+  id: Long,
+  depositor: String,
+  postingdate: String,
+  valuedate: String,
+  postingtext: String,
+  purpose: String,
+  beneficiary: String,
+  accountno: String,
+  bankCode: String,
+  amount: String,
+  currency: String,
+  info: String,
+  company: String,
+  companyIban: String,
+  posted: Boolean,
+  modelId: Int = 999
+)
 /*
 
 import common.{Amount, DATE_FORMAT}
@@ -960,6 +971,5 @@ object BankAccount2 {
       )
     } yield new BankAccount2(validOwnerId, validBalance, validAccountType, validOpenedDate) {}
 }
-
 
  */

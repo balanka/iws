@@ -71,7 +71,7 @@ object Server extends IOApp {
       routesRepository = DoobieRoutesRepository[F](transactor)
       journalRepository = DoobieJournalRepository[F](transactor)
       pacRepository = DoobiePeriodicAccountBalanceRepository[F](transactor)
-      financialsDetailsRepository = DoobieFinancialsTransactionDetailsRepository[F](transactor)
+      //financialsDetailsRepository = DoobieFinancialsTransactionDetailsRepository[F](transactor)
       financialsRepository = DoobieFinancialsTransactionRepository[F](transactor)
       art_endpoints = endpoint.ArticleEndpoints(ArticleService(artRepository))
       mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(masterfileRepository))
@@ -81,10 +81,7 @@ object Server extends IOApp {
       customer_endpoints = endpoint.CustomerEndpoints(CustomerService(customerRepository))
       supplier_endpoints = endpoint.SupplierEndpoints(SupplierService(supplierRepository))
       routes_endpoints = endpoint.RoutesEndpoints(RoutesService(routesRepository))
-      financials_endpoints = endpoint.FinancialsEndpoints(
-        FinancialsTransactionService(financialsRepository),
-        FinancialsTransactionDetailsService(financialsDetailsRepository)
-      )
+      financials_endpoints = endpoint.FinancialsEndpoints(FinancialsTransactionService(financialsRepository))
       journal_endpoints = endpoint.JournalEndpoints(JournalService(journalRepository))
       endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+>
         routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
