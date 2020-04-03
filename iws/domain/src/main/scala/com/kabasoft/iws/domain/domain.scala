@@ -353,7 +353,7 @@ final case class BankStatement(
   company: String,
   companyIban: String,
   posted: Boolean,
-  modelId: Int = 999
+  modelId: Int = 18
 )
 /*
 

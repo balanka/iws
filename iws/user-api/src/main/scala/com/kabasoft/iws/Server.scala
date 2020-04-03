@@ -4,9 +4,9 @@ import com.kabasoft.iws.config.PetStoreConfig
 import com.kabasoft.iws.service.{
   AccountService,
   ArticleService,
+  BankStatementService,
   CostCenterService,
   CustomerService,
-  FinancialsTransactionDetailsService,
   FinancialsTransactionService,
   JournalService,
   MasterfileService,
@@ -17,9 +17,9 @@ import com.kabasoft.iws.service.{
 import com.kabasoft.iws.repository.doobie.{
   DoobieAccountRepository,
   DoobieArticleRepository,
+  DoobieBankStatementRepository,
   DoobieCostCenterRepository,
   DoobieCustomerRepository,
-  DoobieFinancialsTransactionDetailsRepository,
   DoobieFinancialsTransactionRepository,
   DoobieJournalRepository,
   DoobieMasterfileRepository,
@@ -55,7 +55,6 @@ object Server extends IOApp {
       server <- BlazeServerBuilder[F]
         .bindHttp(config.port, config.host)
         .withHttpApp(CORS(httpApp))
-        //.withHttpApp(CORS(httpApp))
         .resource
     } yield server
 
@@ -71,8 +70,8 @@ object Server extends IOApp {
       routesRepository = DoobieRoutesRepository[F](transactor)
       journalRepository = DoobieJournalRepository[F](transactor)
       pacRepository = DoobiePeriodicAccountBalanceRepository[F](transactor)
-      //financialsDetailsRepository = DoobieFinancialsTransactionDetailsRepository[F](transactor)
       financialsRepository = DoobieFinancialsTransactionRepository[F](transactor)
+      bankstmtRepository = DoobieBankStatementRepository[F](transactor)
       art_endpoints = endpoint.ArticleEndpoints(ArticleService(artRepository))
       mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(masterfileRepository))
       acc_endpoints = endpoint.AccountEndpoints(AccountService(accRepository))
@@ -83,9 +82,10 @@ object Server extends IOApp {
       routes_endpoints = endpoint.RoutesEndpoints(RoutesService(routesRepository))
       financials_endpoints = endpoint.FinancialsEndpoints(FinancialsTransactionService(financialsRepository))
       journal_endpoints = endpoint.JournalEndpoints(JournalService(journalRepository))
+      bankstmt_endpoints = endpoint.BankStatementEndpoints(BankStatementService(bankstmtRepository))
       endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+>
         routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
-        financials_endpoints <+> pac_endpoints <+> journal_endpoints
+        financials_endpoints <+> pac_endpoints <+> journal_endpoints <+> bankstmt_endpoints
     } yield Router("/pets" -> endpoints).orNotFound //yield Router("/mtf" -> mtf_endpoints, "/pets" -> endpoints, "/acc" -> acc_endpoints).orNotFound //yield Router("/" -> endpoints).orNotFound
 
 }

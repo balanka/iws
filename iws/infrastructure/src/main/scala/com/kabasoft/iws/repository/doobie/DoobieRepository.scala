@@ -423,13 +423,44 @@ private object SQL {
 
     def update(model: Journal): Update0 = sql"""Update dual set column1=true""".update
   }
-  //implicit val petMeta: Meta[PetId] = Meta[Long].timap(PetId.apply)(_.toLong)
+  object BankStatement {
 
-  //implicit private val petNameGet: Get[PetName] = Get[String].tmap(name => PetName(name))
+    def create(item: BankStatement): Update0 =
+      sql"""INSERT INTO bankstatement (ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
+            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, MODELID) VALUES
+     (SELECT nextval('bankstatement_id_seq'), ${item.id}, ${item.depositor}, ${item.postingdate}, ${item.valuedate}
+    , {item.postingtext}, {item.purpose},${item.beneficiary},  ${item.accountno},{item.bankCode}, {item.amount}
+    , {item.currency}, {item.info}, {item.company}, {item.companyIban}, {item.posted}, {item.modelId} """.update
 
-  //implicit val masterfileMeta: Meta[MasterfileId] = Meta[String].timap(MasterfileId.apply)(_.value)
+    def select(id: String): Query0[BankStatement] = sql"""
+     SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
+            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, MODELID
+     FROM costcenter
+     WHERE id = $id ORDER BY  id ASC
+     """.query
 
-  //implicit private val masterfilesNameGet: Get[MasterfileName] = Get[String].tmap(name => MasterfileName(name))
+    def findByModelId(modelId: Int): Query0[BankStatement] = sql"""
+        SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
+            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, MODELID
+        FROM bankstatement  WHERE modelId = $modelId ORDER BY  id ASC
+         """.query
+
+    def all: Query0[BankStatement] = sql"""
+     SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
+            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, MODELID
+     FROM bankstatement
+     ORDER BY id  ASC
+  """.query
+
+    def delete(id: String): Update0 = sql"""DELETE FROM costcenter WHERE ID = $id""".update
+
+    def update(item: BankStatement): Update0 =
+      sql"""Update bankstatement set id = ${item.id}, DEPOSITOR=${item.depositor}
+      POSTINGDATE= ${item.postingdate}, VALUDATE= ${item.valuedate},POSTINGTEXT= {item.postingtext}
+    , PURPOSE={item.purpose},  BENEFICIARY=${item.beneficiary}, ACCOUNTNO= ${item.accountno}, BANKCODE={item.bankCode}
+    , AMOUNT={item.amount}, CURRENCY={item.currency}, INFO={item.info}, COMAPNY={item.company}, COMPANYIBAN={item.companyIban}
+    , POSTED={item.posted}, {item.modelId} where id =${item.id}""".update
+  }
 }
 //class MyClass extends MyTrait[({ type l[A] = Map[String, A] })#l] λ[A => X[A, Throwable]]
 //final case class DoobiePetRepository[F[_]: Bracket[?[_], Throwable]](transactor: Transactor[F])
@@ -771,4 +802,28 @@ final case class DoobieJournalRepository[F[_]: Sync](transactor: Transactor[F]) 
 object DoobieJournalRepository {
   def apply[F[_]: Sync](transactor: Transactor[F]): DoobieJournalRepository[F] =
     new DoobieJournalRepository[F](transactor)
+}
+
+final case class DoobieBankStatementRepository[F[_]: Sync](transactor: Transactor[F])
+    extends Repository[F, BankStatement] {
+  import SQL._
+
+  def create(bs: BankStatement): F[Int] = SQL.BankStatement.create(bs).run.transact(transactor)
+  def delete(id: String): F[Int] = SQL.BankStatement.delete(id).run.transact(transactor)
+
+  override def list(from: Int, until: Int): F[List[BankStatement]] =
+    paginate(until - from, from)(BankStatement.all).to[List].transact(transactor)
+
+  override def getBy(id: String): F[Option[BankStatement]] = BankStatement.select(id).option.transact(transactor)
+  def update(model: BankStatement): F[Int] = SQL.BankStatement.update(model).run.transact(transactor)
+  override def getByModelId(modelid: Int, from: Int, until: Int): F[List[BankStatement]] =
+    paginate(until - from, from)(BankStatement.findByModelId(modelid))
+      .to[List]
+      .transact(transactor)
+  def findSome(id: String): F[List[BankStatement]] = list(0, 1000000)
+}
+
+object DoobieBankStatementRepository {
+  def apply[F[_]: Sync](transactor: Transactor[F]): DoobieBankStatementRepository[F] =
+    new DoobieBankStatementRepository[F](transactor)
 }
