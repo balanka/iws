@@ -432,11 +432,10 @@ private object SQL {
     , {item.postingtext}, {item.purpose},${item.beneficiary},  ${item.accountno},{item.bankCode}, {item.amount}
     , {item.currency}, {item.info}, {item.company}, {item.companyIban}, {item.posted}, {item.modelId} """.update
 
-    def select(id: String): Query0[BankStatement] = sql"""
-     SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
-            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, MODELID
-     FROM costcenter
-     WHERE id = $id ORDER BY  id ASC
+    def select(id: String): Query0[BankStatement] = sql"""SELECT ID, DEPOSITOR, POSTINGDATE,
+         VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
+         , INFO,COMPANY,COMPANYIBAN, POSTED, MODELID
+        FROM bankstatement WHERE id = $id.toLong ORDER BY  id ASC
      """.query
 
     def findByModelId(modelId: Int): Query0[BankStatement] = sql"""
