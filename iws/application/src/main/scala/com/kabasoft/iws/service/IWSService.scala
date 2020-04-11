@@ -15,7 +15,7 @@ trait Service[F[_], A] {
 }
 
 class MasterfileService[F[_]](repository: Repository[F, Masterfile]) extends Service[F, Masterfile] {
-  def create(item: Masterfile): F[Int] = repository.create(item)
+  def create(item: Masterfile): F[Int] = { println("item<<<<<<<<<<<", item); repository.create(item) }
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Masterfile]] = repository.list(from, until)
   def getBy(id: String): F[Option[Masterfile]] = repository.getBy(id)
@@ -67,7 +67,7 @@ class SupplierService[F[_]](repository: Repository[F, Supplier]) extends Service
   def update(model: Supplier): F[Int] = repository.update(model)
 }
 class AccountService[F[_]](repository: Repository[F, Account]) extends Service[F, Account] {
-  def create(item: Account): F[Int] = repository.create(item)
+  def create(item: Account): F[Int] = { println("item>>>>>>>>>>>>>", item); repository.create(item) }
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Account]] = repository.list(from, until)
   def getBy(id: String): F[Option[Account]] = repository.getBy(id)

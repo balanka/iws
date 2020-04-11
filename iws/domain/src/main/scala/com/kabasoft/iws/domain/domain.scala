@@ -18,15 +18,15 @@ object Currency extends Enumeration {
   val CHF, CNY, EUR, DEM, GNF, JPY, USD, XOF = Value
 }
 case class Pet(id: MasterfileId, name: String)
-final case class Masterfile(id: MasterfileId, name: String, description: String, modelId: Int, parent: String)
+final case class Masterfile(id: MasterfileId, name: String, description: String, modelid: Int, parent: String)
     extends IWS
-final case class Routes(id: MasterfileId, name: String, description: String, modelId: Int, component: String)
+final case class Routes(id: MasterfileId, name: String, description: String, modelid: Int, component: String)
     extends IWS
 final case class Article(
   id: MasterfileId,
   name: String = "",
   description: String = "",
-  modelId: Int,
+  modelid: Int,
   parent: String = "",
   price: Amount = 0.0,
   stocked: Boolean = false
@@ -93,8 +93,9 @@ final case class CostCenter(
   id: MasterfileId,
   name: String = "",
   description: String = "",
+  modelid: Int = 6,
   account: String = "",
-  modelId: Int = 6,
+  company: String,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
@@ -114,7 +115,7 @@ final case class Supplier(
   iban: String,
   vatcode: String,
   company: String,
-  modelId: Int = 3,
+  modelid: Int = 3,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
@@ -134,7 +135,7 @@ final case class Customer(
   iban: String,
   vatcode: String,
   company: String,
-  modelId: Int = 3,
+  modelid: Int = 3,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
@@ -194,7 +195,7 @@ final case class FinancialsTransaction(
   postingdate: Instant = Instant.now(),
   periode: Int = Instant.now().get(ChronoField.YEAR),
   posted: Boolean = false,
-  modelId: Int,
+  modelid: Int,
   company: String,
   text: String = "",
   typeJournal: Int = 0,
@@ -299,7 +300,7 @@ final case class Journal(
   text: String = "",
   month: Int,
   year: Int,
-  modelId: Int,
+  modelid: Int,
   idebit: BigDecimal,
   icredit: BigDecimal,
   typeJournal: Int = 0,
@@ -327,7 +328,7 @@ object Journal {
       x.text,
       x.month,
       x.year,
-      x.modelId,
+      x.modelid,
       x.idebit,
       x.icredit,
       x.typeJournal,
@@ -353,7 +354,7 @@ final case class BankStatement(
   company: String,
   companyIban: String,
   posted: Boolean,
-  modelId: Int = 18
+  modelid: Int = 18
 )
 /*
 
