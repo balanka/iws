@@ -1,0 +1,11 @@
+{
+"id": {"value": "CC001"},
+"name": "TESTCC",
+"description": "TESTCC",
+"account: "200",
+"modelId": 6,
+"company": "1000",
+"enterdate": "2020-03-01T23:00:00Z",
+"postingdate": "2020-03-01T23:00:00Z",
+"changedate": "2020-03-01T23:00:00Z"
+}

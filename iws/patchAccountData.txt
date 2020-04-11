@@ -1,0 +1,13 @@
+{
+"id":{"value":"076"},
+"name":"Wirtschaftsgueter groesser 150 bis 1.000 Euro (Sammelposten)",
+"description":"Wirtschaftsguueter groesser 150 bis 1.000 Euro (Sammelposten)",
+"enterdate":"2020-03-30T22:00:00Z",
+"changedate":"2020-03-30T22:00:00Z",
+"postingdate":"2020-03-01T23:00:00Z",
+"company":"1000",
+"modelId":9,
+"account":"6",
+"isDebit":true,
+"balancesheet":false
+}

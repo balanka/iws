@@ -1,0 +1,1 @@
+{"id":{"value":"0077"},"name":"TEST","description":"TEST","enterdate":"2020-03-01T23:00:00Z","changedate":"2019-12-31T23:00:00Z","postingdate":"2020-03-30T22:00:00Z","company":"1000","modelid":9,"account":"9901","isDebit":true,"balancesheet":true}
