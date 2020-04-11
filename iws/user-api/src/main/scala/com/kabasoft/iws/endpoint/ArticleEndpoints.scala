@@ -21,7 +21,7 @@ class ArticleEndpoints[F[_]: Effect] extends Http4sDsl[F] {
   private def list(service: ArticleService[F]): HttpRoutes[F] =
     HttpRoutes.of[F] {
 
-      case request @ POST -> Root =>
+      case request @ POST -> Root / "art" =>
         for {
           article <- request.decodeJson[Article]
           created <- service.create(article)

@@ -13,15 +13,24 @@ import io.circe.syntax._
 import org.http4s.HttpRoutes
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
+import io.circe.{Decoder, Encoder}
+import java.time.Instant
+import scala.util.Try
 
 class AccountEndpoints[F[_]: Effect] extends Http4sDsl[F] {
+
+  implicit val encodeInstant: Encoder[Instant] = Encoder.encodeString.contramap[Instant](_.toString)
+  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emapTry { str =>
+    Try(Instant.parse(str))
+
+  }
 
   def routes(service: AccountService[F]): HttpRoutes[F] = get(service) <+> list(service)
 
   private def list(service: AccountService[F]): HttpRoutes[F] =
     HttpRoutes.of[F] {
 
-      case request @ POST -> Root =>
+      case request @ POST -> Root / "acc" =>
         for {
           account <- request.decodeJson[Account]
           created <- service.create(account)
