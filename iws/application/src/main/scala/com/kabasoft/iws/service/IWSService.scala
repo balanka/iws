@@ -138,6 +138,16 @@ class BankStatementService[F[_]](repository: Repository[F, BankStatement]) exten
     repository.getByModelId(modelid, from, until)
   def update(model: BankStatement): F[Int] = repository.update(model)
 }
+class VatService[F[_]](repository: Repository[F, Vat]) extends Service[F, Vat] {
+  def create(item: Vat): F[Int] = repository.create(item)
+  def delete(id: String): F[Int] = repository.delete(id)
+  def list(from: Int, until: Int): F[List[Vat]] = repository.list(from, until)
+  def getBy(id: String): F[Option[Vat]] = repository.getBy(id)
+  def findSome(id: String): F[List[Vat]] = repository.findSome(id)
+  def getByModelId(modelid: Int, from: Int, until: Int): F[List[Vat]] =
+    repository.getByModelId(modelid, from, until)
+  def update(model: Vat): F[Int] = repository.update(model)
+}
 object MasterfileService {
   def apply[F[_]](repository: Repository[F, Masterfile]): MasterfileService[F] = new MasterfileService[F](repository)
 }
@@ -181,4 +191,8 @@ object JournalService {
 object BankStatementService {
   def apply[F[_]](repository: Repository[F, BankStatement]): BankStatementService[F] =
     new BankStatementService[F](repository)
+}
+object VatService {
+  def apply[F[_]](repository: Repository[F, Vat]): VatService[F] =
+    new VatService[F](repository)
 }
