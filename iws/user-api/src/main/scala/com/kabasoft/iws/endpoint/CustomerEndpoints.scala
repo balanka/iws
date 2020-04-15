@@ -6,16 +6,31 @@ import cats.implicits._
 import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination._
 import com.kabasoft.iws.pagination.PaginationValidator
+import com.kabasoft.iws.pagination.Pagination.PageSizeMatcher
 import com.kabasoft.iws.service.CustomerService
 import com.kabasoft.iws.domain.Customer
+
+import io.circe.{Decoder, Encoder}
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.HttpRoutes
 import org.http4s.circe._
+
+import io.circe.syntax._
+import org.http4s._
+import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
+import io.circe.{Decoder, Encoder}
+import java.time.Instant
+import scala.util.Try
 
 class CustomerEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 
+  implicit val encodeInstant: Encoder[Instant] = Encoder.encodeString.contramap[Instant](_.toString)
+  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emapTry { str =>
+    Try(Instant.parse(str))
+
+  }
   def routes(service: CustomerService[F]): HttpRoutes[F] = get(service) <+> list(service)
 
   private def list(service: CustomerService[F]): HttpRoutes[F] =
