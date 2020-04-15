@@ -208,76 +208,77 @@ private object SQL {
   object Customer {
 
     def create(item: Customer): Update0 =
-      sql"""INSERT INTO customer (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP,
-            PHONE, EMAIL, ACCOUNT, IBAN, VATCODE, REVENUE_ACCOUNT, COMPANY, modelid ) VALUES
+      sql"""INSERT INTO customer (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY,
+            PHONE, EMAIL, ACCOUNT, REVENUE_ACCOUNT, IBAN, VATCODE, COMPANY, modelid ) VALUES
      (${item.id.value}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
-     , ${item.state}, ${item.phone},  ${item.email}, ${item.account}, ${item.iban}
-     , ${item.vatcode}, ${item.oaccount}, ${item.company} , ${item.modelid})""".update
+     , ${item.state},  ${item.zip},  ${item.country}, ${item.phone},  ${item.email}, ${item.account}
+     , ${item.oaccount}, ${item.iban}, ${item.vatcode}, ${item.company} , ${item.modelid})""".update
 
     def select(id: String): Query0[Customer] = sql"""
-     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, PHONE, EMAIL, ACCOUNT
-             , IBAN, VATCODE, REVENUE_ACCOUNT, COMPANY, modelid, enter_date, modified_date, posting_date
+     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
+             , IBAN, VATCODE, modelid, COMPANY,  enter_date, modified_date, posting_date
      FROM customer
      WHERE id = $id ORDER BY  id ASC
      """.query
 
     def findByModelId(modelid: Int): Query0[Customer] = sql"""
-        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, PHONE, EMAIL, ACCOUNT
-             , IBAN, VATCODE, REVENUE_ACCOUNT, COMPANY, modelid, enter_date, modified_date, posting_date
+        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
+             , IBAN, VATCODE, modelid, COMPANY,  enter_date, modified_date, posting_date
         FROM customer  WHERE modelid = $modelid ORDER BY  id ASC
          """.query
 
     def all: Query0[Customer] = sql"""
-     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, PHONE, EMAIL, ACCOUNT
-             , IBAN, VATCODE, REVENUE_ACCOUNT, COMPANY, modelid, enter_date, modified_date, posting_date
+     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
+             , IBAN, VATCODE, modelid, COMPANY, enter_date, modified_date, posting_date
      FROM customer
      ORDER BY id  ASC
   """.query
 
     def delete(id: String): Update0 = sql"""DELETE FROM customer WHERE ID = $id""".update
 
-    def update(model: Customer): Update0 = sql"""Update customer set id = ${model.id}, name =${model.name},
-         description=${model.description}, account=${model.account}, street=${model.street}, city=${model.city}
-         , state = ${model.state},phone= ${model.phone},  email= ${model.email}, iban =${model.iban}, vatcode=${model.vatcode}
-        ,  account= ${model.account}, revenue_account=${model.oaccount}, company=${model.company} , ${model.modelid}
-          where id =${model.id}""".update
+    def update(model: Customer): Update0 =
+      sql"""Update customer set  name =${model.name}, description=${model.description}
+         , street=${model.street}, city=${model.city}, state = ${model.state}, zip=${model.zip}, , country=${model.country}
+         , phone= ${model.phone},  email= ${model.email}, account=${model.account},  revenue_account=${model.oaccount}
+         , iban =${model.iban}, vatcode=${model.vatcode}  company=${model.company} where id =${model.id}""".update
   }
   object Supplier {
 
     def create(item: Supplier): Update0 =
-      sql"""INSERT INTO supplier (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP,
-            PHONE, EMAIL, ACCOUNT, IBAN, VATCODE, CHARGE_ACCOUNT, COMPANY, modelid ) VALUES
-     (${item.id.value}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
-     , ${item.state}, ${item.phone},  ${item.email}, ${item.account}, ${item.iban}
-     , ${item.vatcode}, ${item.oaccount}, ${item.company} , ${item.modelid})""".update
+      sql"""INSERT INTO supplier (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY
+            PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT, IBAN, VATCODE, COMPANY, modelid ) VALUES(
+            ${item.id.value}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
+           , ${item.state}, ${item.zip},  ${item.country}, ${item.phone},  ${item.email}, ${item.account}
+           , ${item.oaccount}, ${item.iban}, ${item.vatcode}, ${item.company} , ${item.modelid})""".update
 
     def select(id: String): Query0[Supplier] = sql"""
-     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, PHONE, EMAIL, ACCOUNT
-             , IBAN, VATCODE, CHARGE_ACCOUNT, COMPANY, modelid, enter_date, modified_date, posting_date
+     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
+             , IBAN, VATCODE, modelid, COMPANY,  enter_date, modified_date, posting_date
      FROM supplier
      WHERE id = $id ORDER BY  id ASC
      """.query
 
     def findByModelId(modelid: Int): Query0[Supplier] = sql"""
-        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, PHONE, EMAIL, ACCOUNT
-             , IBAN, VATCODE, CHARGE_ACCOUNT, COMPANY, modelid, enter_date, modified_date, posting_date
+        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
+             , IBAN, VATCODE, modelid, COMPANY,  enter_date, modified_date, posting_date
         FROM supplier  WHERE modelid = $modelid ORDER BY  id ASC
          """.query
 
     def all: Query0[Supplier] = sql"""
-     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, PHONE, EMAIL, ACCOUNT
-             , IBAN, VATCODE, CHARGE_ACCOUNT, COMPANY, modelid, enter_date, modified_date, posting_date
+     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
+             , IBAN, VATCODE, modelid, COMPANY,  enter_date, modified_date, posting_date
      FROM supplier
      ORDER BY id  ASC
   """.query
 
-    def delete(id: String): Update0 = sql"""DELETE FROM customer WHERE ID = $id""".update
+    def delete(id: String): Update0 = sql"""DELETE FROM Supplier WHERE ID = $id""".update
 
-    def update(model: Supplier): Update0 = sql"""Update supplier set id = ${model.id}, name =${model.name},
-         description=${model.description}, account=${model.account}, street=${model.street}, city=${model.city}
-         , state = ${model.state},phone= ${model.phone},  email= ${model.email}, iban =${model.iban}, vatcode=${model.vatcode}
-        ,  account= ${model.account}, charge_account=${model.oaccount}, company=${model.company} , ${model.modelid}
-          where id =${model.id}""".update
+    def update(model: Supplier): Update0 =
+      sql"""Update supplier set name =${model.name}, description=${model.description}
+         , street=${model.street}, city=${model.city},state = ${model.state}, zip=${model.zip}, country=${model.country}
+         , phone= ${model.phone}, email= ${model.email}, account=${model.account}, charge_account=${model.oaccount}
+         , iban =${model.iban}, vatcode=${model.vatcode}, company=${model.company}  where id =${model.id} """.update
+
   }
   object FinancialsTransactionDetailsRepo {
 
@@ -425,6 +426,35 @@ private object SQL {
     , PURPOSE={item.purpose},  BENEFICIARY=${item.beneficiary}, ACCOUNTNO= ${item.accountno}, BANKCODE={item.bankCode}
     , AMOUNT={item.amount}, CURRENCY={item.currency}, INFO={item.info}, COMAPNY={item.company}, COMPANYIBAN={item.companyIban}
     , POSTED={item.posted}, {item.modelid} where id =${item.id}""".update
+  }
+  object Vat {
+
+    def create(item: Vat): Update0 =
+      sql"""INSERT INTO vat (ID, NAME, DESCRIPTION, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT, COMPANY, modelid)
+             VALUES (${item.id.value}, ${item.name}, ${item.description}, ${item.percent}
+            , ${item.inputVatAccount}, ${item.outputVatAccount}, ${item.company}, ${item.modelid} )""".update
+
+    def select(id: String): Query0[Vat] = sql"""
+     SELECT id, name, description, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT
+      , enter_date, modified_date, posting_date, company, modelid
+     FROM vat WHERE id = $id ORDER BY  id ASC """.query
+
+    def findByModelId(modelid: Int): Query0[Vat] = sql"""
+        SELECT id, name, description, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT
+      , enter_date, modified_date, posting_date, company, modelid
+        FROM vat  WHERE modelid = $modelid ORDER BY  id ASC """.query
+
+    def all: Query0[Vat] = sql"""
+     SELECT id, name,description, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT
+     , enter_date, modified_date, posting_date, company, modelid
+    FROM vat ORDER BY id  ASC""".query
+
+    def delete(id: String): Update0 = sql"""DELETE FROM vat WHERE ID = $id""".update
+
+    def update(model: Vat): Update0 = sql"""Update vat set  name =${model.name}, description=${model.description}
+         ,  PERCENT=${model.percent}, INPUTVATACCOUNT=${model.inputVatAccount}
+          , OUTPUTVATACCOUNT=${model.outputVatAccount}, company=${model.company}
+         where id =${model.id}""".update
   }
 }
 //class MyClass extends MyTrait[({ type l[A] = Map[String, A] })#l] λ[A => X[A, Throwable]]
@@ -609,17 +639,21 @@ final case class DoobieCustomerRepository[F[_]: Sync](transactor: Transactor[F])
 
   def delete(id: String): F[Int] = SQL.Customer.delete(id).run.transact(transactor)
 
-  override def list(from: Int, until: Int): F[List[Customer]] =
+  override def list(from: Int, until: Int): F[List[Customer]] = {
+    println("Customer.all >>", Customer.all.sql);
     paginate(until - from, from)(Customer.all).to[List].transact(transactor)
+  }
 
   override def getBy(id: String): F[Option[Customer]] = Customer.select(id).option.transact(transactor)
 
   def update(model: Customer): F[Int] = SQL.Customer.update(model).run.transact(transactor)
 
-  override def getByModelId(modelid: Int, from: Int, until: Int): F[List[Customer]] =
+  override def getByModelId(modelid: Int, from: Int, until: Int): F[List[Customer]] = {
+    println("Customer.getByModelId >>>>" + modelid, Customer.findByModelId(modelid).sql);
     paginate(until - from, from)(Customer.findByModelId(modelid))
       .to[List]
       .transact(transactor)
+  }
 
   def findSome(id: String): F[List[Customer]] = list(0, 1000000)
 }
@@ -674,7 +708,11 @@ final case class DoobieSupplierRepository[F[_]: Sync](transactor: Transactor[F])
 
   override def getBy(id: String): F[Option[Supplier]] = Supplier.select(id).option.transact(transactor)
 
-  def update(model: Supplier): F[Int] = SQL.Supplier.update(model).run.transact(transactor)
+  def update(model: Supplier): F[Int] = {
+    println("SQL.Supplier.update(model) >>", SQL.Supplier.update(model).sql);
+    println("model>>", model.toString);
+    SQL.Supplier.update(model).run.transact(transactor)
+  }
 
   override def getByModelId(modelid: Int, from: Int, until: Int): F[List[Supplier]] =
     //SQL.Supplier.findByModelId(modelid).to[List].transact(transactor)
@@ -832,4 +870,31 @@ final case class DoobieBankStatementRepository[F[_]: Sync](transactor: Transacto
 object DoobieBankStatementRepository {
   def apply[F[_]: Sync](transactor: Transactor[F]): DoobieBankStatementRepository[F] =
     new DoobieBankStatementRepository[F](transactor)
+}
+final case class DoobieVatRepository[F[_]: Sync](transactor: Transactor[F]) extends Repository[F, Vat] {
+
+  import SQL._
+
+  def create(vat: Vat): F[Int] = SQL.Vat.create(vat).run.transact(transactor)
+
+  def delete(id: String): F[Int] = SQL.Vat.delete(id).run.transact(transactor)
+
+  override def list(from: Int, until: Int): F[List[Vat]] =
+    paginate(until - from, from)(Vat.all)
+      .to[List]
+      .transact(transactor)
+
+  override def getBy(id: String): F[Option[Vat]] = Vat.select(id).option.transact(transactor)
+
+  def update(model: Vat): F[Int] = SQL.Vat.update(model).run.transact(transactor)
+
+  override def getByModelId(modelid: Int, from: Int, until: Int): F[List[Vat]] =
+    paginate(until - from, from)(Vat.findByModelId(modelid))
+      .to[List]
+      .transact(transactor)
+
+  def findSome(id: String): F[List[Vat]] = list(0, 1000000)
+}
+object DoobieVatRepository {
+  def apply[F[_]: Sync](transactor: Transactor[F]): DoobieVatRepository[F] = new DoobieVatRepository[F](transactor)
 }

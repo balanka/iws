@@ -100,6 +100,20 @@ final case class CostCenter(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
 ) extends IWS
+
+final case class Vat(
+  id: MasterfileId,
+  name: String = "",
+  description: String = "",
+  percent: BigDecimal,
+  inputVatAccount: String,
+  outputVatAccount: String,
+  enterdate: Instant = Instant.now(),
+  changedate: Instant = Instant.now(),
+  postingdate: Instant = Instant.now(),
+  company: String,
+  modelid: Int = 6
+) extends IWS
 final case class Supplier(
   id: MasterfileId,
   name: String,
@@ -108,6 +122,7 @@ final case class Supplier(
   city: String,
   state: String,
   zip: String,
+  country: String,
   phone: String,
   email: String,
   account: String,
@@ -128,6 +143,7 @@ final case class Customer(
   city: String,
   state: String,
   zip: String,
+  country: String,
   phone: String,
   email: String,
   account: String,

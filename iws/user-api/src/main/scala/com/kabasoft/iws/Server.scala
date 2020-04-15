@@ -12,7 +12,8 @@ import com.kabasoft.iws.service.{
   MasterfileService,
   PeriodicAccountBalanceService,
   RoutesService,
-  SupplierService
+  SupplierService,
+  VatService
 }
 import com.kabasoft.iws.repository.doobie.{
   DoobieAccountRepository,
@@ -25,7 +26,8 @@ import com.kabasoft.iws.repository.doobie.{
   DoobieMasterfileRepository,
   DoobiePeriodicAccountBalanceRepository,
   DoobieRoutesRepository,
-  DoobieSupplierRepository
+  DoobieSupplierRepository,
+  DoobieVatRepository
 }
 import cats.Monad
 import cats.effect._
@@ -72,6 +74,7 @@ object Server extends IOApp {
       pacRepository = DoobiePeriodicAccountBalanceRepository[F](transactor)
       financialsRepository = DoobieFinancialsTransactionRepository[F](transactor)
       bankstmtRepository = DoobieBankStatementRepository[F](transactor)
+      vatRepository = DoobieVatRepository[F](transactor)
       art_endpoints = endpoint.ArticleEndpoints(ArticleService(artRepository))
       mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(masterfileRepository))
       acc_endpoints = endpoint.AccountEndpoints(AccountService(accRepository))
@@ -83,7 +86,8 @@ object Server extends IOApp {
       financials_endpoints = endpoint.FinancialsEndpoints(FinancialsTransactionService(financialsRepository))
       journal_endpoints = endpoint.JournalEndpoints(JournalService(journalRepository))
       bankstmt_endpoints = endpoint.BankStatementEndpoints(BankStatementService(bankstmtRepository))
-      endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+>
+      vat_endpoints = endpoint.VatEndpoints(VatService(vatRepository))
+      endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+> vat_endpoints <+>
         routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
         financials_endpoints <+> pac_endpoints <+> journal_endpoints <+> bankstmt_endpoints
     } yield Router("/pets" -> endpoints).orNotFound //yield Router("/mtf" -> mtf_endpoints, "/pets" -> endpoints, "/acc" -> acc_endpoints).orNotFound //yield Router("/" -> endpoints).orNotFound
