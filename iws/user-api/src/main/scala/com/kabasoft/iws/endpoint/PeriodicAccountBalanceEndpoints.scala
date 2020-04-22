@@ -56,14 +56,15 @@ class PeriodicAccountBalanceEndpoints[F[_]: Effect] extends Http4sDsl[F] {
             BadRequest(ErrorsJson.from(errors).asJson)
         }
     }
-
+//http://localhost:8080/pets/pac/331034/202001/202004
   private def get(service: PeriodicAccountBalanceService[F]): HttpRoutes[F] =
     HttpRoutes.of[F] {
-      case GET -> Root / "pac" / id =>
-        service.getBy(id).flatMap {
-          case Some(found) => Ok(found.asJson)
-          case None => NotFound("")
-        }
+      case GET -> Root / "pac" / accountid / from / to => {
+        for {
+          retrieved <- service.findSome(accountid, from, to)
+          response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
+        } yield response
+      }
       case GET -> Root / "pacmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
