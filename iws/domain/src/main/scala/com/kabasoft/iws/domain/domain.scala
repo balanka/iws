@@ -47,7 +47,7 @@ final case class Account(
 final case class PeriodicAccountBalance private (
   id: MasterfileId,
   account: String,
-  periode: Int,
+  period: Int,
   idebit: BigDecimal,
   icredit: BigDecimal,
   debit: BigDecimal,
@@ -65,7 +65,7 @@ object PeriodicAccountBalance {
   val MODELID = 106
   def apply(
     account: String,
-    periode: String,
+    period: String,
     idebit: String,
     icredit: String,
     debit: String,
@@ -74,9 +74,9 @@ object PeriodicAccountBalance {
     currency: String
   ) =
     new PeriodicAccountBalance(
-      MasterfileId(periode.concat(account)),
+      MasterfileId(period.concat(account)),
       account,
-      periode.toInt,
+      period.toInt,
       BigDecimal(idebit.replace(".0000", ".00")),
       BigDecimal(icredit.replace(".0000", ".00")),
       BigDecimal(debit.replace(".0000", ".00")),
@@ -209,7 +209,7 @@ final case class FinancialsTransaction(
   transdate: Instant = Instant.now(),
   enterdate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  periode: Int = Instant.now().get(ChronoField.YEAR),
+  period: Int = Instant.now().get(ChronoField.YEAR),
   posted: Boolean = false,
   modelid: Int,
   company: String,
@@ -308,7 +308,7 @@ final case class Journal(
   transdate: Instant,
   postingdate: Instant,
   enterdate: Instant,
-  periode: Int,
+  period: Int,
   amount: BigDecimal,
   side: Boolean,
   company: String,
@@ -336,7 +336,7 @@ object Journal {
       x.transdate,
       x.postingdate,
       x.enterdate,
-      x.periode,
+      x.period,
       x.amount,
       x.side,
       x.company,
