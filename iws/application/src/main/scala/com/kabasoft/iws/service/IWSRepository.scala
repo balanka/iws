@@ -8,5 +8,5 @@ trait Repository[F[_], A] {
   def getBy(id: String): F[Option[A]]
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[A]]
   def update(model: A): F[Int]
-  def findSome(id: String): F[List[A]]
+  def findSome(param: String*): F[List[A]]
 }

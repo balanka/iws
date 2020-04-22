@@ -10,7 +10,7 @@ trait Service[F[_], A] {
   def list(from: Int, until: Int): F[List[A]]
   def getBy(id: String): F[Option[A]]
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[A]]
-  def findSome(id: String): F[List[A]]
+  def findSome(model: String*): F[List[A]]
   def update(model: A): F[Int]
 }
 
@@ -19,7 +19,7 @@ class MasterfileService[F[_]](repository: Repository[F, Masterfile]) extends Ser
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Masterfile]] = repository.list(from, until)
   def getBy(id: String): F[Option[Masterfile]] = repository.getBy(id)
-  def findSome(id: String): F[List[Masterfile]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Masterfile]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Masterfile]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Masterfile): F[Int] = repository.update(model)
@@ -29,7 +29,7 @@ class CostCenterService[F[_]](repository: Repository[F, CostCenter]) extends Ser
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[CostCenter]] = repository.list(from, until)
   def getBy(id: String): F[Option[CostCenter]] = repository.getBy(id)
-  def findSome(id: String): F[List[CostCenter]] = repository.findSome(id)
+  def findSome(model: String*): F[List[CostCenter]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[CostCenter]] =
     repository.getByModelId(modelid, from, until)
   def update(model: CostCenter): F[Int] = repository.update(model)
@@ -41,7 +41,7 @@ class PeriodicAccountBalanceService[F[_]](repository: Repository[F, PeriodicAcco
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[PeriodicAccountBalance]] = repository.list(from, until)
   def getBy(id: String): F[Option[PeriodicAccountBalance]] = repository.getBy(id)
-  def findSome(id: String): F[List[PeriodicAccountBalance]] = repository.findSome(id)
+  def findSome(model: String*): F[List[PeriodicAccountBalance]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[PeriodicAccountBalance]] =
     repository.getByModelId(modelid, from, until)
   def update(model: PeriodicAccountBalance): F[Int] = repository.update(model)
@@ -51,7 +51,7 @@ class CustomerService[F[_]](repository: Repository[F, Customer]) extends Service
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Customer]] = repository.list(from, until)
   def getBy(id: String): F[Option[Customer]] = repository.getBy(id)
-  def findSome(id: String): F[List[Customer]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Customer]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Customer]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Customer): F[Int] = repository.update(model)
@@ -61,7 +61,7 @@ class SupplierService[F[_]](repository: Repository[F, Supplier]) extends Service
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Supplier]] = repository.list(from, until)
   def getBy(id: String): F[Option[Supplier]] = repository.getBy(id)
-  def findSome(id: String): F[List[Supplier]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Supplier]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Supplier]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Supplier): F[Int] = repository.update(model)
@@ -71,7 +71,7 @@ class AccountService[F[_]](repository: Repository[F, Account]) extends Service[F
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Account]] = repository.list(from, until)
   def getBy(id: String): F[Option[Account]] = repository.getBy(id)
-  def findSome(id: String): F[List[Account]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Account]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Account]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Account): F[Int] = repository.update(model)
@@ -81,7 +81,7 @@ class ArticleService[F[_]](repository: Repository[F, Article]) extends Service[F
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Article]] = repository.list(from, until)
   def getBy(id: String): F[Option[Article]] = repository.getBy(id)
-  def findSome(id: String): F[List[Article]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Article]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Article]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Article): F[Int] = repository.update(model)
@@ -92,7 +92,7 @@ class FinancialsTransactionService[F[_]](repository: Repository[F, FinancialsTra
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[FinancialsTransaction]] = repository.list(from, until)
   def getBy(id: String): F[Option[FinancialsTransaction]] = repository.getBy(id)
-  def findSome(id: String): F[List[FinancialsTransaction]] = repository.findSome(id)
+  def findSome(model: String*): F[List[FinancialsTransaction]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[FinancialsTransaction]] =
     repository.getByModelId(modelid, from, until)
   def update(model: FinancialsTransaction): F[Int] = repository.update(model)
@@ -103,7 +103,7 @@ class FinancialsTransactionDetailsService[F[_]](repository: Repository[F, Financ
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[FinancialsTransactionDetails]] = repository.list(from, until)
   def getBy(id: String): F[Option[FinancialsTransactionDetails]] = repository.getBy(id)
-  def findSome(id: String): F[List[FinancialsTransactionDetails]] = repository.findSome(id)
+  def findSome(model: String*): F[List[FinancialsTransactionDetails]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[FinancialsTransactionDetails]] =
     repository.getByModelId(modelid, from, until)
   def update(model: FinancialsTransactionDetails): F[Int] = repository.update(model)
@@ -113,7 +113,7 @@ class RoutesService[F[_]](repository: Repository[F, Routes]) extends Service[F, 
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Routes]] = repository.list(from, until)
   def getBy(id: String): F[Option[Routes]] = repository.getBy(id)
-  def findSome(id: String): F[List[Routes]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Routes]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Routes]] = repository.getByModelId(modelid, from, until)
   def update(model: Routes): F[Int] = repository.update(model)
 }
@@ -122,7 +122,7 @@ class JournalService[F[_]](repository: Repository[F, Journal]) extends Service[F
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Journal]] = repository.list(from, until)
   def getBy(id: String): F[Option[Journal]] = repository.getBy(id)
-  def findSome(id: String): F[List[Journal]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Journal]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Journal]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Journal): F[Int] = repository.update(model)
@@ -133,7 +133,7 @@ class BankStatementService[F[_]](repository: Repository[F, BankStatement]) exten
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[BankStatement]] = repository.list(from, until)
   def getBy(id: String): F[Option[BankStatement]] = repository.getBy(id)
-  def findSome(id: String): F[List[BankStatement]] = repository.findSome(id)
+  def findSome(model: String*): F[List[BankStatement]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[BankStatement]] =
     repository.getByModelId(modelid, from, until)
   def update(model: BankStatement): F[Int] = repository.update(model)
@@ -143,7 +143,7 @@ class VatService[F[_]](repository: Repository[F, Vat]) extends Service[F, Vat] {
   def delete(id: String): F[Int] = repository.delete(id)
   def list(from: Int, until: Int): F[List[Vat]] = repository.list(from, until)
   def getBy(id: String): F[Option[Vat]] = repository.getBy(id)
-  def findSome(id: String): F[List[Vat]] = repository.findSome(id)
+  def findSome(model: String*): F[List[Vat]] = repository.findSome(model: _*)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Vat]] =
     repository.getByModelId(modelid, from, until)
   def update(model: Vat): F[Int] = repository.update(model)
