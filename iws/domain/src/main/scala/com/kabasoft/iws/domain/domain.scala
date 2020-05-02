@@ -61,6 +61,7 @@ final case class PeriodicAccountBalance private (
   def dbalance = fdebit - fcredit
   def cbalance = fcredit - fdebit
 }
+
 object PeriodicAccountBalance {
   val MODELID = 106
   def apply(
@@ -89,16 +90,17 @@ object PeriodicAccountBalance {
       _.copy(idebit = BigDecimal(0), debit = BigDecimal(0), icredit = BigDecimal(0), credit = BigDecimal(0))
     )
 }
+
 final case class CostCenter(
   id: MasterfileId,
   name: String = "",
   description: String = "",
-  modelid: Int = 6,
-  account: String = "",
-  company: String,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now()
+  postingdate: Instant = Instant.now(),
+  modelid: Int = 6,
+  account: String = "",
+  company: String
 ) extends IWS
 
 final case class Vat(
@@ -310,19 +312,19 @@ final case class Journal(
   enterdate: Instant,
   period: Int,
   amount: BigDecimal,
-  side: Boolean,
-  company: String,
+  idebit: BigDecimal,
+  debit: BigDecimal,
+  icredit: BigDecimal,
+  credit: BigDecimal,
   currency: String,
+  side: Boolean,
   text: String = "",
   month: Int,
   year: Int,
-  modelid: Int,
-  idebit: BigDecimal,
-  icredit: BigDecimal,
+  company: String,
   typeJournal: Int = 0,
   file_content: Int = 0,
-  debit: BigDecimal,
-  credit: BigDecimal
+  modelid: Int
 )
 object Journal {
 
@@ -338,19 +340,19 @@ object Journal {
       x.enterdate,
       x.period,
       x.amount,
-      x.side,
-      x.company,
+      x.idebit,
+      x.icredit,
+      x.debit,
+      x.credit,
       x.currency,
+      x.side,
       x.text,
       x.month,
       x.year,
-      x.modelid,
-      x.idebit,
-      x.icredit,
+      x.company,
       x.typeJournal,
       x.file_content,
-      x.debit,
-      x.credit
+      x.modelid
     )
 }
 
