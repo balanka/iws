@@ -59,6 +59,12 @@ class JournalEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 
   private def get(service: JournalService[F]): HttpRoutes[F] =
     HttpRoutes.of[F] {
+      case GET -> Root / "jou" / accountid / from / to => {
+        for {
+          retrieved <- service.findSome(accountid, from, to)
+          response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
+        } yield response
+      }
       case GET -> Root / "jou" / (id) =>
         service.getBy(id).flatMap {
           case Some(found) => Ok(found.asJson)
