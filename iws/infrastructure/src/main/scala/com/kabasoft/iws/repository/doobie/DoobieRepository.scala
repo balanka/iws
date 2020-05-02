@@ -132,22 +132,22 @@ private object SQL {
     , ${item.modelid},  ${item.account}, ${item.company} )""".update
 
     def select(id: String): Query0[CostCenter] = sql"""
-     SELECT id, name, description, modelid, ACCOUNT, company, enter_date, modified_date, posting_date
+     SELECT id, name, description, enter_date, modified_date, posting_date, modelid, ACCOUNT, company
      FROM costcenter
      WHERE id = $id ORDER BY  id ASC
      """.query
 
     def findByModelId(modelid: Int): Query0[CostCenter] = sql"""
-        SELECT id, name, description, modelid, ACCOUNT, company, enter_date, modified_date, posting_date
+        SELECT id, name, description, enter_date, modified_date, posting_date, modelid, ACCOUNT, company
         FROM costcenter  WHERE modelid = $modelid ORDER BY  id ASC
          """.query
 
     def findSome(model: String*): Query0[CostCenter] = sql"""
-        SELECT id, name, description, modelid, ACCOUNT, company, enter_date, modified_date, posting_date
+        SELECT id, name, description, enter_date, modified_date, posting_date, modelid, ACCOUNT, company
         FROM costcenter   ORDER BY  id ASC""".query
 
     def all: Query0[CostCenter] = sql"""
-     SELECT id, name,description, modelid, ACCOUNT, company, enter_date, modified_date, posting_date
+     SELECT id, name,description, enter_date, modified_date, posting_date, modelid, ACCOUNT, company
      FROM costcenter
      ORDER BY id  ASC
   """.query
@@ -365,13 +365,19 @@ private object SQL {
             COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT ) VALUES
           (SELECT nextval('master_compta_Id_seq'), ${model.oid}, ${model.costcenter}, ${model.account},${model.transdate},
           ${model.postingdate}, ${model.enterdate}, ${model.period}, ${model.posted}, ${model.modelid},
-         ${model.company}, ${model.text},  ${model.typeJournal},  ${model.file_content} )""".update
+         ${model.company}, ${model.text},  ${model.typeJournal},  ${model.file_content} ) """.update
 
-    def select(id: String): Query0[FinancialsTransaction] = sql"""
-     SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
-            COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
-     FROM master_compta
-     WHERE id = $id.toLong ORDER BY  id ASC """.query[FinancialsTransaction_Type].map(FinancialsTransaction.apply)
+    def select(idx: String): Query0[FinancialsTransaction_Type2] = {
+      val id = idx.toLong
+      sql"""SELECT A.ID, A.OID, A.COSTCENTER, A.ACCOUNT, A.TRANSDATE, A.POSTINGDATE, A.ENTERDATE, A.PERIOD, A.POSTED
+            , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, B.ID, B.account,
+       B.side, B.oaccount, B.amount, B.duedate, B.text, B.currency, B.terms
+     FROM master_compta A, details_compta B
+     WHERE A.id = B.transid AND A.id = $id ORDER BY  A.ID """.query
+
+      // .query[FinancialsTransaction_Type2]
+      // .map(FinancialsTransaction.apply)
+    }
 
     def findSome(model: String*): Query0[FinancialsTransaction] = {
       val id = model(0).toLong
@@ -396,10 +402,10 @@ private object SQL {
     def delete(id: String): Update0 = sql"""DELETE FROM master_compta WHERE ID = $id.toLong """.update
 
     def update(model: FinancialsTransaction): Update0 = sql"""Update master_compta
-    set OID=${model.oid}, COSTCENTER=${model.costcenter}, ACCOUNT=${model.account}, HEADERTEXT=${model.text},
-     TRANSDATE=${model.transdate}, FILE_CONTENT=${model.file_content} TYPE_JOURNAL=${model.typeJournal}
-    , COMPANY=${model.company} , modelid=${model.modelid}, PERIOD=${model.period}
-     where id =${model.id}""".update
+    set OID=${model.oid}, COSTCENTER=${model.costcenter}, ACCOUNT=${model.account}, TRANSDATE=${model.transdate}
+     , HEADERTEXT=${model.text}, FILE_CONTENT=${model.file_content}, TYPE_JOURNAL=${model.typeJournal}
+    ,  PERIOD=${model.period}
+     where id =${model.tid} AND POSTED=false""".update
   }
   object Journal {
     def create(model: Journal): Update0 =
@@ -412,8 +418,8 @@ private object SQL {
           , ${model.icredit}, ${model.credit} )""".update
 
     def select(id: String): Query0[Journal] = sql"""
-     SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, ENTERDATE, POSTINGDATE, PERIOD, AMOUNT, SIDE
-           , COMPANY, CURRENCY, TEXT, MONTH, YEAR, modelid, FILE_CONTENT, JOURNAL_TYPE, IDEBIT, DEBIT, ICREDIT, CREDIT
+     SELECT  ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, AMOUNT,IDEBIT, DEBIT
+     , ICREDIT, CREDIT, CURRENCY, SIDE, TEXT, MONTH, YEAR, COMPANY, JOURNAL_TYPE, FILE_CONTENT, MODELID
      FROM journal
      WHERE id = $id.toLong ORDER BY  id ASC """.query
 
@@ -421,20 +427,19 @@ private object SQL {
       val acc: String = model(0)
       val fromPeriod: Int = model(1).toInt
       val toPeriod: Int = model(2).toInt
-      sql"""
-     SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, ENTERDATE, POSTINGDATE, PERIOD, AMOUNT, SIDE
-           , COMPANY, CURRENCY, TEXT, MONTH, YEAR, modelid, FILE_CONTENT, TJOURNAL_TYPE, IDEBIT, DEBIT, ICREDIT, CREDIT
-     FROM journal WHERE ACCOUNT = $acc AND PERIOD BETWEEN $fromPeriod AND toPeriod  ORDER BY  id ASC """.query
+      sql"""SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, AMOUNT,IDEBIT, DEBIT
+        , ICREDIT, CREDIT, CURRENCY, SIDE, TEXT, MONTH, YEAR, COMPANY, JOURNAL_TYPE, FILE_CONTENT, MODELID
+        FROM journal WHERE ACCOUNT = $acc AND PERIOD BETWEEN $fromPeriod AND $toPeriod  ORDER BY  id ASC """.query
     }
 
-    def findByModelId(modelid: Int): Query0[Journal] = sql"""
-    SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, ENTERDATE, POSTINGDATE, PERIOD, AMOUNT, SIDE
-           , COMPANY, CURRENCY, TEXT, MONTH, YEAR, modelid, FILE_CONTENT, JOURNAL_TYPE, IDEBIT, DEBIT, ICREDIT, CREDIT
+    def findByModelId(modelid: Int): Query0[Journal] =
+      sql""" SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, AMOUNT,IDEBIT, DEBIT
+     , ICREDIT, CREDIT, CURRENCY, SIDE, TEXT, MONTH, YEAR, COMPANY, JOURNAL_TYPE, FILE_CONTENT, MODELID
     FROM journal  Where modelid = $modelid ORDER BY  ID ASC """.query
 
-    def all: Query0[Journal] = sql"""
-     SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, ENTERDATE, POSTINGDATE, PERIOD, AMOUNT, SIDE
-           , COMPANY, CURRENCY, TEXT, MONTH, YEAR, modelid, FILE_CONTENT, JOURNAL_TYPE, IDEBIT, DEBIT, ICREDIT, CREDIT
+    def all: Query0[Journal] =
+      sql"""SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, AMOUNT,IDEBIT, DEBIT
+     , ICREDIT, CREDIT, CURRENCY, SIDE, TEXT, MONTH, YEAR, COMPANY, JOURNAL_TYPE, FILE_CONTENT, MODELID
      FROM journal ORDER BY id  ASC
   """.query
 
@@ -809,8 +814,13 @@ final case class DoobieFinancialsTransactionDetailsRepository[F[_]: Sync](transa
   override def list(from: Int, until: Int): F[List[FinancialsTransactionDetails]] =
     paginate(until - from, from)(FinancialsTransactionDetailsRepo.all).to[List].transact(transactor)
 
-  override def getBy(id: String): F[Option[FinancialsTransactionDetails]] =
+  override def getBy(id: String): F[Option[FinancialsTransactionDetails]] = {
+    println(
+      "FinancialsTransactionDetailsRepo.select(id)",
+      FinancialsTransactionDetailsRepo.select(id).sql
+    );
     FinancialsTransactionDetailsRepo.select(id).option.transact(transactor)
+  }
 
   def update(model: FinancialsTransactionDetails): F[Int] =
     SQL.FinancialsTransactionDetailsRepo.update(model).run.transact(transactor)
@@ -848,8 +858,15 @@ final case class DoobieFinancialsTransactionRepository[F[_]: Sync: Monad](transa
 
   def delete(id: String): F[Int] = SQL.FinancialsTransactionRepo.delete(id).run.transact(transactor)
 
-  override def getBy(id: String): F[Option[FinancialsTransaction]] =
-    FinancialsTransactionRepo.select(id).option.transact(transactor)
+  override def getBy(id: String): F[Option[FinancialsTransaction]] = {
+    println("FinancialsTransactionRepo.select(id)", FinancialsTransactionRepo.select(id).sql);
+    FinancialsTransactionRepo
+      .select(id)
+      .map(FinancialsTransaction.apply)
+      .to[List]
+      .map(_.headOption)
+      .transact(transactor)
+  }
 
   def update(model: FinancialsTransaction): F[Int] =
     SQL.FinancialsTransactionRepo.update(model).run.transact(transactor)
@@ -863,7 +880,6 @@ final case class DoobieFinancialsTransactionRepository[F[_]: Sync: Monad](transa
 
   override def getByModelId(modelid: Int, from: Int, until: Int): F[List[FinancialsTransaction]] =
     paginate(until - from, from)(FinancialsTransactionRepo.findByModelId(modelid))
-    //.map(FinancialsTransaction.apply)
       .to[List]
       .map(FinancialsTransaction.apply)
       .transact(transactor)
@@ -897,7 +913,10 @@ final case class DoobieJournalRepository[F[_]: Sync](transactor: Transactor[F]) 
       .to[List]
       .transact(transactor)
 
-  def findSome(model: String*): F[List[Journal]] = SQL.Journal.findSome(model: _*).to[List].transact(transactor)
+  def findSome(model: String*): F[List[Journal]] = {
+    println("SQL.Journal.findSome(model:_*) >>", SQL.Journal.findSome(model: _*).sql);
+    SQL.Journal.findSome(model: _*).to[List].transact(transactor)
+  }
 }
 
 object DoobieJournalRepository {
