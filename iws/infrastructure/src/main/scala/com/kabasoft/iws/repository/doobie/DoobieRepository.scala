@@ -61,7 +61,7 @@ private object SQL {
 
     def create(item: Routes): Update0 =
       sql"""INSERT INTO Routes (ID, NAME, DESCRIPTION, MODELID, PARENT) VALUES
-     (${item.id.value}, ${item.name}, ${item.description}
+     (${item.id}, ${item.name}, ${item.description}
     , ${item.modelid},  ${item.component} )""".update
 
     def select(id: String): Query0[Routes] = sql"""
@@ -94,7 +94,7 @@ private object SQL {
 
     def create(item: Masterfile): Update0 =
       sql"""INSERT INTO masterfiles (ID, NAME, DESCRIPTION, modelid, PARENT) VALUES
-     (${item.id.value}, ${item.name}, ${item.description}
+     (${item.id}, ${item.name}, ${item.description}
     , ${item.modelid},  ${item.parent} )""".update
 
     def select(id: String): Query0[Masterfile] = sql"""
@@ -128,7 +128,7 @@ private object SQL {
 
     def create(item: CostCenter): Update0 =
       sql"""INSERT INTO costcenter (ID, NAME, DESCRIPTION, modelid, ACCOUNT, COMPANY) VALUES
-     (${item.id.value}, ${item.name}, ${item.description}
+     (${item.id}, ${item.name}, ${item.description}
     , ${item.modelid},  ${item.account}, ${item.company} )""".update
 
     def select(id: String): Query0[CostCenter] = sql"""
@@ -160,7 +160,7 @@ private object SQL {
   object Account {
     def create(item: Account): Update0 =
       sql"""INSERT INTO account (ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company
-             , modelid, ACCOUNT, isDebit, balancesheet) VALUES  (${item.id.value}, ${item.name}, ${item.description}
+             , modelid, ACCOUNT, isDebit, balancesheet) VALUES  (${item.id}, ${item.name}, ${item.description}
              , ${item.postingdate}, ${item.changedate}, ${item.enterdate}, ${item.company}, ${item.modelid}
              , ${item.account}, ${item.isDebit}, ${item.balancesheet})""".update
 
@@ -192,7 +192,7 @@ private object SQL {
       sql"""Update account set  NAME =${model.name}, DESCRIPTION=${model.description}
         , posting_date =${model.postingdate}, modified_date =${model.changedate}, enter_date = ${model.enterdate}
         , company =${model.company}, account =${model.account}, isDebit =${model.isDebit}, balancesheet =${model.balancesheet}
-         where id =${model.id.value} """.update
+         where id =${model.id} """.update
 
   }
   object PeriodicAccountBalance {
@@ -248,7 +248,7 @@ private object SQL {
     def create(item: Customer): Update0 =
       sql"""INSERT INTO customer (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY,
             PHONE, EMAIL, ACCOUNT, REVENUE_ACCOUNT, IBAN, VATCODE, COMPANY, modelid ) VALUES
-     (${item.id.value}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
+     (${item.id}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
      , ${item.state},  ${item.zip},  ${item.country}, ${item.phone},  ${item.email}, ${item.account}
      , ${item.oaccount}, ${item.iban}, ${item.vatcode}, ${item.company} , ${item.modelid})""".update
 
@@ -291,7 +291,7 @@ private object SQL {
     def create(item: Supplier): Update0 =
       sql"""INSERT INTO supplier (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY
             PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT, IBAN, VATCODE, COMPANY, modelid ) VALUES(
-            ${item.id.value}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
+            ${item.id}, ${item.name}, ${item.description} , ${item.street}, ${item.city}
            , ${item.state}, ${item.zip},  ${item.country}, ${item.phone},  ${item.email}, ${item.account}
            , ${item.oaccount}, ${item.iban}, ${item.vatcode}, ${item.company} , ${item.modelid})""".update
 
@@ -495,7 +495,7 @@ private object SQL {
 
     def create(item: Vat): Update0 =
       sql"""INSERT INTO vat (ID, NAME, DESCRIPTION, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT, COMPANY, modelid)
-             VALUES (${item.id.value}, ${item.name}, ${item.description}, ${item.percent}
+             VALUES (${item.id}, ${item.name}, ${item.description}, ${item.percent}
             , ${item.inputVatAccount}, ${item.outputVatAccount}, ${item.company}, ${item.modelid} )""".update
 
     def select(id: String): Query0[Vat] = sql"""
