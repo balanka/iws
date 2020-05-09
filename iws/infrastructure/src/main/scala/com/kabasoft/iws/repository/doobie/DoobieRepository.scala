@@ -330,16 +330,18 @@ private object SQL {
 
     def create(model: FinancialsTransactionDetails): Update0 =
       sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY,TERMS) VALUES
-     (SELECT nextval('details_compta_Id_seq'), ${model.transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
+     (nextval('details_compta_id_seq'), ${model.transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
     , ${model.duedate}, ${model.text},  ${model.currency}, ${model.company} )""".update
 
     def select(id: String): Query0[FinancialsTransactionDetails] = sql"""
      SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE id = $id ORDER BY  id ASC """.query
 
-    def findSome(model: String*): Query0[FinancialsTransactionDetails] = sql"""
-     SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
-     FROM details_compta ORDER BY  id ASC """.query
+    def findSome(model: String*): Query0[FinancialsTransactionDetails] = {
+      val transid = model(0).toLong
+      sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
+     FROM details_compta  WHERE TRANSID =${transid} ORDER BY  id ASC """.query[FinancialsTransactionDetails]
+    }
 
     def findByModelId(modelid: Int): Query0[FinancialsTransactionDetails] = sql"""
         SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
@@ -363,17 +365,20 @@ private object SQL {
     def create(model: FinancialsTransaction): Update0 =
       sql"""INSERT INTO master_compta (ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
             COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT ) VALUES
-          (SELECT nextval('master_compta_Id_seq'), ${model.oid}, ${model.costcenter}, ${model.account},${model.transdate},
+          (NEXTVAL('master_compta_id_seq'), ${model.oid}, ${model.costcenter}, ${model.account},${model.transdate},
           ${model.postingdate}, ${model.enterdate}, ${model.period}, ${model.posted}, ${model.modelid},
          ${model.company}, ${model.text},  ${model.typeJournal},  ${model.file_content} ) """.update
 
     def select(idx: String): Query0[FinancialsTransaction_Type2] = {
       val id = idx.toLong
       sql"""SELECT A.ID, A.OID, A.COSTCENTER, A.ACCOUNT, A.TRANSDATE, A.POSTINGDATE, A.ENTERDATE, A.PERIOD, A.POSTED
-            , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, B.ID, B.account,
-       B.side, B.oaccount, B.amount, B.duedate, B.text, B.currency, B.terms
-     FROM master_compta A, details_compta B
-     WHERE A.id = B.transid AND A.id = $id ORDER BY  A.ID """.query
+        , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, COALESCE (B.ID, -1) as ID
+      , COALESCE(B.account, '-1') as account, COALESCE (B.side,true) as side
+     ,  COALESCE (B.oaccount, '-1') as oaccount,  COALESCE( B.amount,0) as Amount
+     , COALESCE(B.duedate,CURRENT_TIMESTAMP) AS duedate, COALESCE (B.text,'TEXT') AS text
+     , COALESCE (B.currency, 'EUR') as currency
+      FROM master_compta A LEFT  JOIN  details_compta B ON  B.transid = A.id
+     WHERE  A.id = $id ORDER BY  A.ID """.query
 
       // .query[FinancialsTransaction_Type2]
       // .map(FinancialsTransaction.apply)
@@ -381,17 +386,28 @@ private object SQL {
 
     def findSome(model: String*): Query0[FinancialsTransaction] = {
       val id = model(0).toLong
-      sql"""SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
-            COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
+      sql"""SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid
+        , COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
      FROM master_compta
      WHERE id = $id ORDER BY  id ASC """.query[FinancialsTransaction_Type].map(FinancialsTransaction.apply)
     }
+    /*
+    def findByModelId2(modelid: Int): Query0[FinancialsTransaction] = sql"""
+    SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
+       COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
+    FROM master_compta   WHERE  modelid = ${modelid} ORDER BY  ID ASC """.query[FinancialsTransaction]
 
-    def findByModelId(modelid: Int): Query0[FinancialsTransaction_Type2] = sql"""
-    SELECT A.ID, A.OID, A.COSTCENTER, A.ACCOUNT, A.TRANSDATE, A.POSTINGDATE, A.ENTERDATE, A.PERIOD, A.POSTED, A.modelid,
-       A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, B.ID, B.account,
-       B.side, B.oaccount, B.amount, B.duedate, B.text, B.currency, B.terms
-    FROM master_compta A, details_compta B  WHERE A.id = B.transid and A.modelid = $modelid ORDER BY  A.ID ASC """.query
+     */
+
+    def findByModelId(modelid: Int): Query0[FinancialsTransaction_Type2] =
+      sql"""SELECT A.ID, A.OID, A.COSTCENTER, A.ACCOUNT, A.TRANSDATE, A.POSTINGDATE, A.ENTERDATE, A.PERIOD, A.POSTED
+        , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, COALESCE (B.ID, -1) as ID
+      , COALESCE(B.account, '-1') as account, COALESCE (B.side,true) as side
+     ,  COALESCE (B.oaccount, '-1') as oaccount,  COALESCE( B.amount,0) as Amount
+     , COALESCE(B.duedate,CURRENT_TIMESTAMP) AS duedate, COALESCE (B.text,'TEXT') AS text
+     , COALESCE (B.currency, 'EUR') as currency
+        FROM master_compta A LEFT  JOIN  details_compta B ON  B.transid = A.id
+        WHERE  A.modelid = $modelid ORDER BY A.ID ASC """.query
 
     def all: Query0[FinancialsTransaction_Type] = sql"""
      SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
@@ -485,11 +501,10 @@ private object SQL {
     }
 
     def update(item: BankStatement): Update0 =
-      sql"""Update bankstatement set id = ${item.id}, DEPOSITOR=${item.depositor}
-      POSTINGDATE= ${item.postingdate}, VALUDATE= ${item.valuedate},POSTINGTEXT= {item.postingtext}
-    , PURPOSE={item.purpose},  BENEFICIARY=${item.beneficiary}, ACCOUNTNO= ${item.accountno}, BANKCODE={item.bankCode}
-    , AMOUNT={item.amount}, CURRENCY={item.currency}, INFO={item.info}, COMAPNY={item.company}, COMPANYIBAN={item.companyIban}
-    , POSTED={item.posted}, {item.modelid} where id =${item.id}""".update
+      sql"""Update bankstatement set POSTINGTEXT=${item.postingtext} , PURPOSE=${item.purpose}
+    ,  ACCOUNTNO= ${item.accountno}, BANKCODE=${item.bankCode}, INFO=${item.info}
+    ,  COMPANYIBAN=${item.companyIban} where id =${item.id}""".update
+
   }
   object Vat {
 
@@ -853,8 +868,10 @@ final case class DoobieFinancialsTransactionRepository[F[_]: Sync: Monad](transa
 
   import SQL._
 
-  def create(transaction: FinancialsTransaction): F[Int] =
+  def create(transaction: FinancialsTransaction): F[Int] = {
+    println("SQL.FinancialsTransactionRepo.create(transaction)", SQL.FinancialsTransactionRepo.create(transaction).sql);
     SQL.FinancialsTransactionRepo.create(transaction).run.transact(transactor)
+  }
 
   def delete(id: String): F[Int] = SQL.FinancialsTransactionRepo.delete(id).run.transact(transactor)
 
