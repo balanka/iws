@@ -42,9 +42,16 @@ final case class Account(
   balancesheet: Boolean
 ) extends IWS
 final case class PeriodicAccountBalance private (
-  id: String, account: String, period: Int, idebit: BigDecimal,
-  icredit: BigDecimal, debit: BigDecimal, credit: BigDecimal,
-  company: String, currency: String, modelid: Int = PeriodicAccountBalance.MODELID
+  id: String,
+  account: String,
+  period: Int,
+  idebit: BigDecimal,
+  icredit: BigDecimal,
+  debit: BigDecimal,
+  credit: BigDecimal,
+  company: String,
+  currency: String,
+  modelid: Int = PeriodicAccountBalance.MODELID
 ) extends IWS {
   def fdebit = debit + idebit
   def fcredit = credit + icredit
@@ -173,7 +180,7 @@ object FinancialsTransactionDetails {
       tr._3,
       tr._4,
       tr._5,
-      BigDecimal(tr._6.replace(",", "").replace("4", "")),
+      BigDecimal(tr._6.replace(",", "").replace("$", "")),
       tr._7,
       tr._8,
       tr._9,
@@ -281,7 +288,7 @@ object FinancialsTransaction {
             k._12,
             k._13,
             k._14
-          ).copy(lines = v.map(FinancialsTransactionDetails.apply))
+          ).copy(lines = v.filter(p => p._15 != -1).map(FinancialsTransactionDetails.apply))
       })
       .toList
 
