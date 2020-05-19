@@ -87,7 +87,16 @@ object PeriodicAccountBalance {
       _.copy(idebit = BigDecimal(0), debit = BigDecimal(0), icredit = BigDecimal(0), credit = BigDecimal(0))
     )
 }
-
+final case class Bank(
+  id: String,
+  name: String = "",
+  description: String = "",
+  enterdate: Instant = Instant.now(),
+  changedate: Instant = Instant.now(),
+  postingdate: Instant = Instant.now(),
+  modelid: Int = 11,
+  company: String
+) extends IWS
 final case class CostCenter(
   id: String,
   name: String = "",
@@ -169,6 +178,7 @@ final case class FinancialsTransactionDetails(
   company: String
 ) extends IWS {
   def id = lid.toString
+
 }
 object FinancialsTransactionDetails {
   type FinancialsTransactionDetails_Type =
@@ -218,6 +228,7 @@ final case class FinancialsTransaction(
   lines: List[FinancialsTransactionDetails] = Nil
 ) extends IWS {
   def id = tid.toString
+  //def total = lines.reduce((x: FinancialsTransactionDetails, y: FinancialsTransactionDetails) => x.amount.+(y.amount))
 }
 
 object FinancialsTransaction {
