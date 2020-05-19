@@ -7,7 +7,7 @@ import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination.{PageSizeMatcher, _}
 import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.domain.Vat
-import com.kabasoft.iws.service.VatService
+import com.kabasoft.iws.repository.doobie.VatService
 import com.kabasoft.iws.pagination.Pagination._
 import io.circe.generic.auto._
 import io.circe.syntax._

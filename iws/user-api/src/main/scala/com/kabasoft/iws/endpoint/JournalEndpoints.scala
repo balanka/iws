@@ -7,7 +7,7 @@ import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination._
 import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.domain.Journal
-import com.kabasoft.iws.service.JournalService
+import com.kabasoft.iws.repository.doobie.JournalService
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.HttpRoutes

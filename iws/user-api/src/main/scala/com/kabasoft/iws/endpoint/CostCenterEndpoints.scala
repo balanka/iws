@@ -8,7 +8,7 @@ import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.pagination.Pagination.PageSizeMatcher
 import com.kabasoft.iws.pagination.Pagination._
-import com.kabasoft.iws.service.CostCenterService
+import com.kabasoft.iws.repository.doobie.CostCenterService
 import com.kabasoft.iws.domain.CostCenter
 import io.circe.{Decoder, Encoder}
 import io.circe.{Decoder, Encoder}

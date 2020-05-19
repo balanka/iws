@@ -7,7 +7,7 @@ import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination._
 import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.domain.Masterfile
-import com.kabasoft.iws.service.MasterfileService
+import com.kabasoft.iws.repository.doobie.MasterfileService
 import com.kabasoft.iws.pagination.Pagination._
 import io.circe.generic.auto._
 import io.circe.syntax._

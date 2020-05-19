@@ -6,7 +6,7 @@ import cats.implicits._
 import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination._
 import com.kabasoft.iws.pagination.PaginationValidator
-import com.kabasoft.iws.service.PeriodicAccountBalanceService
+import com.kabasoft.iws.repository.doobie.PeriodicAccountBalanceService
 import com.kabasoft.iws.domain.PeriodicAccountBalance
 import io.circe.generic.auto._
 import io.circe.syntax._
