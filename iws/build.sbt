@@ -1,7 +1,7 @@
 
-ThisBuild / organization := "com.toracoya"
+ThisBuild / organization := "com.kabasoft"
 ThisBuild / scalaVersion := "2.13.1"
-ThisBuild / version      := "0.2.0-SNAPSHOT"
+ThisBuild / version      := "0.4.0-SNAPSHOT"
 
 ThisBuild / scalafmtOnCompile := true
 
@@ -64,7 +64,7 @@ lazy val circeDependencies = Seq(
 addCompilerPlugin("org.typelevel" % "kind-projector" % KindProjectorVersion cross CrossVersion.full)
 
 
-lazy val petStore = project
+lazy val iws = project
   .in(file("."))
   .aggregate(domain, application, infrastructure, userAPI)
   .dependsOn(domain, application, infrastructure, userAPI)
