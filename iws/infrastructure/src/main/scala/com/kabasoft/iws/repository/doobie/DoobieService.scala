@@ -229,10 +229,8 @@ case class VatService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, 
 
   def update(model: Vat): F[List[Int]] = getXX(SQL.Vat.update, List(model)).sequence.transact(transactor)
 }
-case class FinancialsTransactionService[F[_]: Sync: Applicative](
-  transactor: Transactor[F]
-  //repository: Repository[FinancialsTransaction, FinancialsTransaction_Type2]
-) extends Service[F, FinancialsTransaction] {
+case class FinancialsTransactionService[F[_]: Sync: Applicative](transactor: Transactor[F])
+    extends Service[F, FinancialsTransaction] {
 
   import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
 
@@ -253,11 +251,13 @@ case class FinancialsTransactionService[F[_]: Sync: Applicative](
     println("INSERT->" + newLines.size, newLines);
     println("DELETE->" + deletedLineIds.size, deletedLineIds);
     println("OLD->" + oldLines.size, oldLines);
-    val result: List[ConnectionIO[Int]] = getXX(SQL.FinancialsTransactionDetails.update, oldLines) ++
-      List(getX(SQL.FinancialsTransaction.update, model))
+    val result: List[ConnectionIO[Int]] =
+      getXX(SQL.FinancialsTransactionDetails.update, oldLines) ++
+        getXX(SQL.FinancialsTransactionDetails.delete, deletedLineIds) ++
+        getXX(SQL.FinancialsTransactionDetails.create, newLines) ++
+        List(getX(SQL.FinancialsTransaction.update, model))
 
-     result.sequence.transact(transactor)
-
+    result.sequence.transact(transactor)
 
   }
 
@@ -288,7 +288,7 @@ case class FinancialsTransactionService[F[_]: Sync: Applicative](
 }
 
 case class JournalService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Journal] {
-  def create(item: Journal): F[Int] =SQL.Journal.create(item).run.transact(transactor)
+  def create(item: Journal): F[Int] = SQL.Journal.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Journal.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Journal]] =
     paginate(until - from, from)(SQL.Journal.list).to[List].transact(transactor)
