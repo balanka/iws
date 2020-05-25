@@ -1,36 +1,44 @@
 package com.kabasoft.iws.repository.doobie
 
+import java.time.Instant
+import java.time.temporal.ChronoField
 import cats._
 import cats.data._
 import cats.effect.{IO, Sync}
 import cats.implicits._
-import cats.effect.implicits._
+
 import doobie._
 import doobie.implicits._
 import doobie.util.ExecutionContexts
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
-import doobie.free.connection
 
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
+import com.kabasoft.iws.domain.{Journal => DJournal, PeriodicAccountBalance => DPAC}
 import com.kabasoft.iws.repository.doobie.SQL.{FinancialsTransaction, FinancialsTransactionDetails}
 import com.kabasoft.iws.service.Service
 import com.kabasoft.iws.repository.doobie.SQLPagination._
-import com.kabasoft.iws.repository.doobie.Common.{getX, getXX}
+import com.kabasoft.iws.repository.doobie.Common.{getX, getXX, queryX}
 
 import scala.language.higherKinds
 object Common {
 
+  def queryX[A](func: A => Query0[DPAC], query: A): ConnectionIO[Option[DPAC]] =
+    for {
+      response <- func(query).option
+    } yield response
+
   def getX[A](func: A => Update0, query: A): ConnectionIO[Int] =
     for {
       response <- func(query).run
-    } yield response //.transact(transactor)
+    } yield response
   def getXX[A](func: List[A] => List[Update0], query: List[A]): List[ConnectionIO[Int]] =
     for {
       response <- func(query).map(_.run)
     } yield response
+
 }
 
 case class BankService[F[_]: Sync](transactor: Transactor[F] /*, repository1: Repository[Bank, Bank]*/ )
@@ -43,8 +51,8 @@ case class BankService[F[_]: Sync](transactor: Transactor[F] /*, repository1: Re
   def list(from: Int, until: Int): F[List[Bank]] =
     paginate(until - from, from)(SQL.Bank.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Bank]] = SQL.Bank.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Bank]] =
-    paginate(1000000 - 1, 1)(SQL.Bank.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Bank]] =
+    paginate(until - from, from)(SQL.Bank.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Bank]] =
     paginate(until - from, from)(SQL.Bank.getByModelId(modelid)).to[List].transact(transactor)
   def update(model: Bank): F[List[Int]] = getXX(SQL.Bank.update, List(model)).sequence.transact(transactor)
@@ -61,8 +69,8 @@ case class BankStatementService[F[_]: Sync](
   def list(from: Int, until: Int): F[List[BankStatement]] =
     paginate(until - from, from)(SQL.BankStatement.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[BankStatement]] = SQL.BankStatement.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[BankStatement]] =
-    paginate(1000000 - 1, 1)(SQL.BankStatement.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[BankStatement]] =
+    paginate(until - from, from)(SQL.BankStatement.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[BankStatement]] =
     paginate(until - from, from)(SQL.BankStatement.getByModelId(modelid)).to[List].transact(transactor)
   def update(models: BankStatement): F[List[Int]] =
@@ -78,8 +86,8 @@ case class MasterfileService[F[_]: Sync](transactor: Transactor[F]) extends Serv
       .to[List]
       .transact(transactor)
   def getBy(id: String): F[Option[Masterfile]] = SQL.Masterfile.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Masterfile]] =
-    paginate(1000000 - 1, 1)(SQL.Masterfile.findSome(model: _*))
+  def findSome(from: Int, until: Int, model: String*): F[List[Masterfile]] =
+    paginate(until - from, from)(SQL.Masterfile.findSome(model: _*))
       .to[List]
       .transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Masterfile]] =
@@ -99,8 +107,8 @@ case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Serv
       .to[List]
       .transact(transactor)
   def getBy(id: String): F[Option[CostCenter]] = SQL.CostCenter.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[CostCenter]] =
-    paginate(1000000 - 1, 1)(SQL.CostCenter.findSome(model: _*))
+  def findSome(from: Int, until: Int, model: String*): F[List[CostCenter]] =
+    paginate(until - from, from)(SQL.CostCenter.findSome(model: _*))
       .to[List]
       .transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[CostCenter]] =
@@ -121,8 +129,8 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F]) extends Service
       .to[List]
       .transact(transactor)
   def getBy(id: String): F[Option[Account]] = SQL.Account.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Account]] =
-    paginate(1000000 - 1, 1)(SQL.Account.findSome(model: _*))
+  def findSome(from: Int, until: Int, model: String*): F[List[Account]] =
+    paginate(until - from, from)(SQL.Account.findSome(model: _*))
       .to[List]
       .transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Account]] =
@@ -141,8 +149,8 @@ case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service
   def list(from: Int, until: Int): F[List[Article]] =
     paginate(until - from, from)(SQL.Article.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Article]] = SQL.Article.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Article]] =
-    paginate(1000000 - 1, 1)(SQL.Article.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Article]] =
+    paginate(until - from, from)(SQL.Article.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Article]] =
     paginate(until - from, from)(SQL.Article.getByModelId(modelid)).to[List].transact(transactor)
 
@@ -157,8 +165,8 @@ case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Servic
   def list(from: Int, until: Int): F[List[Customer]] =
     paginate(until - from, from)(SQL.Customer.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Customer]] = SQL.Customer.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Customer]] =
-    paginate(1000000 - 1, 1)(SQL.Customer.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Customer]] =
+    paginate(until - from, from)(SQL.Customer.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Customer]] =
     paginate(until - from, from)(SQL.Customer.getByModelId(modelid)).to[List].transact(transactor)
 
@@ -172,8 +180,8 @@ case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Servic
   def list(from: Int, until: Int): F[List[Supplier]] =
     paginate(until - from, from)(SQL.Supplier.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Supplier]] = SQL.Supplier.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Supplier]] =
-    paginate(1000000 - 1, 1)(SQL.Supplier.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Supplier]] =
+    paginate(until - from, from)(SQL.Supplier.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Supplier]] =
     paginate(until - from, from)(SQL.Supplier.getByModelId(modelid)).to[List].transact(transactor)
 
@@ -183,6 +191,7 @@ case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Servic
 case class PeriodicAccountBalanceService[F[_]: Sync](
   transactor: Transactor[F]
 ) extends Service[F, PeriodicAccountBalance] {
+
   def create(item: PeriodicAccountBalance): F[Int] = {
     println("item<<<<<<<<<<<", item); SQL.PeriodicAccountBalance.create(item).run.transact(transactor)
   }
@@ -191,14 +200,15 @@ case class PeriodicAccountBalanceService[F[_]: Sync](
     paginate(until - from, from)(SQL.PeriodicAccountBalance.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[PeriodicAccountBalance]] =
     SQL.PeriodicAccountBalance.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[PeriodicAccountBalance]] =
-    paginate(1000000 - 1, 1)(SQL.PeriodicAccountBalance.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[PeriodicAccountBalance]] =
+    paginate(until - from, from)(SQL.PeriodicAccountBalance.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[PeriodicAccountBalance]] =
     paginate(until - from, from)(SQL.PeriodicAccountBalance.getByModelId(modelid)).to[List].transact(transactor)
 
   def update(model: PeriodicAccountBalance): F[List[Int]] =
     getXX(SQL.PeriodicAccountBalance.update, List(model)).sequence.transact(transactor)
 }
+
 case class RoutesService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Routes] {
   def create(item: Routes): F[Int] = {
     println("item<<<<<<<<<<<", item); SQL.Routes.create(item).run.transact(transactor)
@@ -207,8 +217,8 @@ case class RoutesService[F[_]: Sync](transactor: Transactor[F]) extends Service[
   def list(from: Int, until: Int): F[List[Routes]] =
     paginate(until - from, from)(SQL.Routes.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Routes]] = SQL.Routes.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Routes]] =
-    paginate(1000000 - 1, 1)(SQL.Routes.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Routes]] =
+    paginate(until - from, from)(SQL.Routes.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Routes]] =
     paginate(until - from, from)(SQL.Routes.getByModelId(modelid)).to[List].transact(transactor)
 
@@ -222,27 +232,49 @@ case class VatService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, 
   def list(from: Int, until: Int): F[List[Vat]] =
     paginate(until - from, from)(SQL.Vat.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Vat]] = SQL.Vat.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Vat]] =
-    paginate(1000000 - 1, 1)(SQL.Vat.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Vat]] =
+    paginate(until - from, from)(SQL.Vat.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Vat]] =
     paginate(until - from, from)(SQL.Vat.getByModelId(modelid)).to[List].transact(transactor)
 
   def update(model: Vat): F[List[Int]] = getXX(SQL.Vat.update, List(model)).sequence.transact(transactor)
 }
-case class FinancialsTransactionService[F[_]: Sync: Applicative](transactor: Transactor[F])
+case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     extends Service[F, FinancialsTransaction] {
 
   import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
 
+  implicit val moveMonoid: Monoid[PeriodicAccountBalance] =
+    new Monoid[PeriodicAccountBalance] {
+      def empty =
+        PeriodicAccountBalance(
+          "",
+          "0",
+          BigDecimal(0),
+          BigDecimal(0),
+          BigDecimal(0),
+          BigDecimal(0),
+          "1000",
+          "EUR"
+        )
+
+      def combine(m1: PeriodicAccountBalance, m2: PeriodicAccountBalance) =
+        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+    }
+
   def create(item: FinancialsTransaction): F[Int] = SQL.FinancialsTransaction.create(item).run.transact(transactor)
+
   def delete(id: String): F[Int] = SQL.FinancialsTransaction.delete(id).run.transact(transactor)
 
   def update(model: FinancialsTransaction): F[List[Int]] = {
 
     def insertPredicate(line: FinancialsTransactionDetails) = line.lid == -1L
+
     def deletePredicate(line: FinancialsTransactionDetails) = line.transid == -2L
+
     val splitted = model.lines.partition(insertPredicate(_))
     val splitted2 = splitted._2.partition(deletePredicate(_))
+    println("model", model)
     println("splitted1", splitted)
     println("splitted2", splitted2)
     val newLines = splitted._1
@@ -275,26 +307,222 @@ case class FinancialsTransactionService[F[_]: Sync: Applicative](transactor: Tra
       .map(_.headOption)
       .transact(transactor)
 
-  def findSome(model: String*): F[List[FinancialsTransaction]] =
-    paginate(100000 - 1, 1)(SQL.FinancialsTransaction.findSome(model: _*))
+  def findSome(from: Int, until: Int, model: String*): F[List[FinancialsTransaction]] =
+    paginate(until - from, from)(SQL.FinancialsTransaction.findSome(model: _*))
       .to[List]
       .map(FinancialsTransaction.apply)
       .transact(transactor)
+
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[FinancialsTransaction]] =
     paginate(until - from, from)(SQL.FinancialsTransaction.getByModelId(modelid))
       .to[List]
       .map(FinancialsTransaction.apply)
       .transact(transactor)
-}
+  // found   : List[F[List[Int]]]
+  //  [error]  required: F[List[Int]]
 
+  def postAll(models: List[FinancialsTransaction]): F[List[Int]] =
+    (for {
+      all <- models.traverse((model: FinancialsTransaction) => debitOrCreditPACAll(model))
+    } yield all.flatten).transact(transactor)
+
+  def post(model: FinancialsTransaction): F[List[Int]] = {
+    println("posting", model)
+    debitOrCreditPAC(model)
+  }
+
+  private[this] def debitOrCreditPACAll(model: FinancialsTransaction): ConnectionIO[List[Int]] =
+    (
+      for {
+        pac <- getIds(model: FinancialsTransaction).traverse(SQL.PeriodicAccountBalance.getBy(_).option)
+        oldRecords: List[DPAC] = getOldPac(pac, model)
+        newRecords: List[DPAC] = getNewPac(pac, model)
+        journalEntries: List[DJournal] = newJournalEntries(model, oldRecords ::: newRecords)
+        pac_created <- newRecords.traverse(SQL.PeriodicAccountBalance.create(_).run)
+        pac_updated <- oldRecords.traverse(SQL.PeriodicAccountBalance.update(_).run)
+        journal <- journalEntries.traverse(SQL.Journal.create(_).run)
+      } yield List(pac_created, pac_updated, journal).flatten
+    )
+
+  private[this] def debitOrCreditPAC(model: FinancialsTransaction): F[List[Int]] =
+    (
+      for {
+        pac <- getIds(model: FinancialsTransaction).traverse(SQL.PeriodicAccountBalance.getBy(_).option)
+        oldRecords: List[DPAC] = getOldPac(pac, model)
+        newRecords: List[DPAC] = getNewPac(pac, model)
+        journalEntries: List[DJournal] = newJournalEntries(model, oldRecords ::: newRecords)
+        pac_created <- newRecords.traverse(SQL.PeriodicAccountBalance.create(_).run)
+        pac_updated <- oldRecords.traverse(SQL.PeriodicAccountBalance.update(_).run)
+        journal <- journalEntries.traverse(SQL.Journal.create(_).run)
+      } yield List(pac_created, pac_updated, journal).flatten
+    ).transact(transactor)
+
+  private[this] def getIds(model: FinancialsTransaction): List[String] = {
+    val ids: List[String] = model.lines.map(line => DPAC.createId(model.getPeriod, line.account))
+    val oids: List[String] = model.lines.map(line => DPAC.createId(model.getPeriod, line.oaccount))
+    ids ++ oids
+  }
+
+  private[this] def getNewPac(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[DPAC] = {
+    val newRecords = getPAC(pacList, model).filter(x => x._2 == true).map(_._1) ::: getPOAC(pacList, model)
+      .filter(x => x._2 == true)
+      .map(_._1)
+    val grouped: Iterable[DPAC] = newRecords
+      .groupBy(_.id)
+      .map({ case (_, v) => v.combineAll })
+    val result = grouped.toList
+    println("result", result)
+    result
+  }
+
+  private[this] def getOldPac(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[DPAC] = {
+    val pacs: List[(DPAC, Boolean)] = getPAC(pacList, model)
+    val poacs: List[(DPAC, Boolean)] = getPOAC(pacList, model)
+    val oldRecords: List[DPAC] = (pacs ::: poacs).filter(x => x._2 == false).map(_._1)
+    val result: List[DPAC] = oldRecords
+      .groupBy(_.id)
+      .map({ case (_, v) => v.combineAll })
+      .toList
+    result
+  }
+
+  private[this] def getAndDebitCreditPac(
+    pacList: List[Option[DPAC]],
+    line: FinancialsTransactionDetails,
+    acc: String,
+    period: Int,
+    side: Boolean
+  ): (DPAC, Boolean) = {
+    val zeroAmount = BigDecimal(0)
+    val pacId = DPAC.createId(period, acc)
+    val pacx: Option[DPAC] = pacList.flatten.find(pac_ => pac_.id == pacId)
+    pacx match {
+      case Some(pac) => {
+        val x: DPAC = {
+          if (acc == pac.account && side) pac.debiting(line.amount)
+          else if (line.oaccount == pac.account && !side) pac.crediting(line.amount)
+          else pac
+
+        }
+        //println("x", x)
+        (x, false)
+      }
+      case None =>
+        (
+          if (line.account == acc) {
+            DPAC.apply(
+              acc,
+              period.toString,
+              zeroAmount,
+              zeroAmount,
+              line.amount,
+              zeroAmount,
+              line.company,
+              line.currency
+            )
+          } else {
+            DPAC.apply(
+              acc,
+              period.toString,
+              zeroAmount,
+              zeroAmount,
+              zeroAmount,
+              line.amount,
+              line.company,
+              line.currency
+            )
+          },
+          true
+        )
+
+    }
+  }
+
+  private[this] def getPAC(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[(DPAC, Boolean)] =
+    model.lines.map(line => getAndDebitCreditPac(pacList, line, line.account, model.getPeriod, true))
+
+  def getPOAC(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[(DPAC, Boolean)] =
+    model.lines.map(line => getAndDebitCreditPac(pacList, line, line.oaccount, model.getPeriod, false))
+  private[this] def createJournalEntries(
+    line: FinancialsTransactionDetails,
+    model: FinancialsTransaction,
+    pacList: List[DPAC]
+  ): List[DJournal] = {
+
+    val pacId = DPAC.createId(model.getPeriod, line.account)
+    val poacId = DPAC.createId(model.getPeriod, line.oaccount)
+    val zeroAmount = BigDecimal(0)
+    val pac: DPAC = pacList
+      .find(pac_ => pac_.id == pacId)
+      .getOrElse(DPAC.apply("", "", zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", ""))
+    val poac: DPAC = pacList
+      .find(poac_ => poac_.id == poacId)
+      .getOrElse(DPAC.apply("", "", zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", ""))
+
+    val jou1 = DJournal(
+      -1,
+      model.tid,
+      model.oid,
+      line.account,
+      line.oaccount,
+      model.transdate,
+      model.postingdate,
+      model.enterdate,
+      model.getPeriod,
+      line.amount,
+      pac.idebit,
+      pac.debit,
+      pac.icredit,
+      pac.credit,
+      line.currency,
+      line.side,
+      line.text,
+      model.month.toInt,
+      model.year,
+      model.company,
+      model.typeJournal,
+      model.file_content,
+      model.modelid
+    )
+    val jou2 = DJournal(
+      -1,
+      model.tid,
+      model.oid,
+      line.oaccount,
+      line.account,
+      model.transdate,
+      model.postingdate,
+      model.enterdate,
+      model.getPeriod,
+      line.amount,
+      poac.idebit,
+      poac.debit,
+      poac.icredit,
+      poac.credit,
+      line.currency,
+      !line.side,
+      line.text,
+      model.month.toInt,
+      model.year,
+      model.company,
+      model.typeJournal,
+      model.file_content,
+      model.modelid
+    )
+    List(jou1, jou2)
+  }
+  private[this] def newJournalEntries(model: FinancialsTransaction, pacList: List[DPAC]): List[DJournal] =
+    model.lines.flatMap(line => createJournalEntries(line, model, pacList))
+
+}
 case class JournalService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Journal] {
   def create(item: Journal): F[Int] = SQL.Journal.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Journal.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Journal]] =
     paginate(until - from, from)(SQL.Journal.list).to[List].transact(transactor)
   def getBy(id: String): F[Option[Journal]] = SQL.Journal.getBy(id).option.transact(transactor)
-  def findSome(model: String*): F[List[Journal]] =
-    paginate(1000000 - 1, 1)(SQL.Journal.findSome(model: _*)).to[List].transact(transactor)
+  def findSome(from: Int, until: Int, model: String*): F[List[Journal]] =
+    paginate(until - from, from)(SQL.Journal.findSome(model: _*)).to[List].transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Journal]] =
     paginate(until - from, from)(SQL.Journal.getByModelId(modelid)).to[List].transact(transactor)
   def update(model: Journal): F[List[Int]] = getXX(SQL.Journal.update, List(model)).sequence.transact(transactor)
@@ -303,11 +531,19 @@ case class JournalService[F[_]: Sync](transactor: Transactor[F]) extends Service
 /*
 DROP SEQUENCE IF EXISTS details_compta_id_seq ;
 CREATE SEQUENCE details_compta_id_seq
-    INCREMENT 1
-    MINVALUE 1
-    MAXVALUE 9223372036854775807
-    START 5141
-    CACHE 1;
+   INCREMENT 1
+   MINVALUE 1
+   MAXVALUE 9223372036854775807
+   START 5141
+   CACHE 1;
 alter sequence details_compta_id_seq owner to postgres;
 
+DROP SEQUENCE IF EXISTS journal_id_seq ;
+CREATE SEQUENCE journal_id_seq
+   INCREMENT 1
+   MINVALUE 1
+   MAXVALUE 9223372036854775807
+   START 13641
+   CACHE 1;
+alter sequence journal_id_seq owner to postgres;
  */
