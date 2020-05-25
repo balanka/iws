@@ -25,6 +25,7 @@ import com.kabasoft.iws.repository.doobie.SQLPagination._
 
 trait Repository[-A, B] {
   def create(item: A): Update0
+  def create(models: List[A]): List[Update0] = models.map(create)
   def delete(item: String): Update0
   def list: Query0[B]
   def getBy(id: String): Query0[B]
@@ -241,6 +242,7 @@ private object SQL {
          where id =${model.id} """.update
 
   }
+
   object PeriodicAccountBalance extends Repository[PeriodicAccountBalance, PeriodicAccountBalance] {
     def create(item: PeriodicAccountBalance): Update0 =
       sql"""INSERT INTO periodic_account_balance (ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid) VALUES (
@@ -251,7 +253,9 @@ private object SQL {
      SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
      FROM periodic_account_balance
      WHERE id = $id ORDER BY  PERIOD ASC
-     """.query
+     """.query[PeriodicAccountBalance]
+
+    def getBy(ids: List[String]): List[Query0[PeriodicAccountBalance]] = ids.map(getBy)
 
     def getByModelId(modelid: Int): Query0[PeriodicAccountBalance] = sql"""
         SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
@@ -267,7 +271,7 @@ private object SQL {
       println("toPeriod", toPeriod)
 
       sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
-        FROM periodic_account_balance WHERE ACCOUNT = $acc AND PERIOD BETWEEN $fromPeriod AND $toPeriod
+        FROM periodic_account_balance WHERE ACCOUNT = ${acc} AND PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}
         ORDER BY  ID ASC """.query
     }
 
@@ -281,7 +285,7 @@ private object SQL {
 
     def update(model: PeriodicAccountBalance): Update0 = sql"""Update periodic_account_balance
          set IDEBIT=${model.idebit}, ICREDIT=${model.icredit}, DEBIT=${model.debit}, CREDIT=${model.credit}
-         , COMPANY=${model.company}, CURRENCY ={model.company} where id =${model.id} """.update
+         , COMPANY=${model.company}, CURRENCY =${model.currency} where id =${model.id} """.update
 
     def findSome(model: PeriodicAccountBalance) = sql"""
       SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
@@ -373,8 +377,6 @@ private object SQL {
 
   }
   object FinancialsTransactionDetails extends Repository[FinancialsTransactionDetails, FinancialsTransactionDetails] {
-
-    def create(models: List[FinancialsTransactionDetails]): List[Update0] = models.map(m => create(m))
 
     def create(model: FinancialsTransactionDetails): Update0 =
       sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY) VALUES
@@ -504,7 +506,7 @@ private object SQL {
     def create(model: Journal): Update0 =
       sql"""INSERT INTO journal (ID,TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, ENTERDATE, POSTINGDATE, PERIOD, AMOUNT, SIDE
            , COMPANY, CURRENCY, TEXT, MONTH, YEAR, modelid, FILE_CONTENT, JOURNAL_TYPE, IDEBIT, DEBIT, ICREDIT, CREDIT ) VALUES
-          (SELECT nextval('journal_id_seq'), ${model.transid}, ${model.oid}, ${model.account}, ${model.oaccount}
+           (NEXTVAL('journal_id_seq'), ${model.transid}, ${model.oid}, ${model.account}, ${model.oaccount}
           , ${model.transdate}, ${model.enterdate}, ${model.postingdate}, ${model.period}, ${model.amount}
           , ${model.side}, ${model.company}, ${model.currency}, ${model.text}, ${model.month}, ${model.year}
           , ${model.modelid}, ${model.file_content}, ${model.typeJournal},${model.idebit}, ${model.debit}
