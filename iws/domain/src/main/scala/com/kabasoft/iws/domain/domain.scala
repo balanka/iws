@@ -2,12 +2,29 @@ package com.kabasoft.iws.domain
 
 import java.time.Instant
 import java.time.temporal.ChronoField
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.ZoneOffset
+import java.time.ZoneId
 
 import com.kabasoft.iws.domain.FinancialsTransaction.FinancialsTransaction_Type2
-import com.kabasoft.iws.domain.commom.Amount
+import com.kabasoft.iws.domain.common._
 
-object commom {
+object common {
   type Amount = scala.math.BigDecimal
+
+  def getMonthAsString(month: Int): String =
+    if (month <= 9) {
+      "0".concat(month.toString)
+    } else month.toString
+  def getYear(instant: Instant) = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getYear
+  def getMonthAsString(instant: Instant): String =
+    getMonthAsString(LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getMonth.getValue)
+  def getPeriod(instant: Instant) = {
+    val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getYear
+    year.toString.concat(getMonthAsString(instant)).toInt
+  }
 }
 case class MasterfileId(value: String) extends AnyVal
 sealed trait IWS {
@@ -53,14 +70,61 @@ final case class PeriodicAccountBalance private (
   currency: String,
   modelid: Int = PeriodicAccountBalance.MODELID
 ) extends IWS {
+  def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
+  def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
+  def idebiting(amount: BigDecimal) = copy(idebit = idebit.+(amount))
+  def icrediting(amount: BigDecimal) = copy(icredit = icredit.+(amount))
   def fdebit = debit + idebit
   def fcredit = credit + icredit
   def dbalance = fdebit - fcredit
   def cbalance = fcredit - fdebit
+
 }
 
 object PeriodicAccountBalance {
   val MODELID = 106
+  def apply(
+    account: String,
+    period: String,
+    idebit: BigDecimal,
+    icredit: BigDecimal,
+    debit: BigDecimal,
+    credit: BigDecimal,
+    company: String,
+    currency: String
+  ) =
+    new PeriodicAccountBalance(
+      period.concat(account),
+      account,
+      period.toInt,
+      idebit,
+      icredit,
+      debit,
+      credit,
+      company,
+      currency
+    )
+  def apply(
+    account: String,
+    period: Int,
+    idebit: BigDecimal,
+    icredit: BigDecimal,
+    debit: BigDecimal,
+    credit: BigDecimal,
+    company: String,
+    currency: String
+  ) =
+    new PeriodicAccountBalance(
+      period.toString.concat(account),
+      account,
+      period.toInt,
+      idebit,
+      icredit,
+      debit,
+      credit,
+      company,
+      currency
+    )
   def apply(
     account: String,
     period: String,
@@ -86,6 +150,8 @@ object PeriodicAccountBalance {
     paccs.foreach(
       _.copy(idebit = BigDecimal(0), debit = BigDecimal(0), icredit = BigDecimal(0), credit = BigDecimal(0))
     )
+  def createId(period: Int, accountId: String) = period.toString.concat(accountId)
+
 }
 final case class Bank(
   id: String,
@@ -218,7 +284,7 @@ final case class FinancialsTransaction(
   transdate: Instant = Instant.now(),
   enterdate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  period: Int = Instant.now().get(ChronoField.YEAR),
+  period: Int = common.getPeriod(Instant.now()),
   posted: Boolean = false,
   modelid: Int,
   company: String,
@@ -228,6 +294,10 @@ final case class FinancialsTransaction(
   lines: List[FinancialsTransactionDetails] = Nil
 ) extends IWS {
   def id = tid.toString
+  def month: String = common.getMonthAsString(transdate)
+  def year: Int = common.getYear(transdate)
+  def getPeriod = common.getPeriod(transdate)
+
   //def total = lines.reduce((x: FinancialsTransactionDetails, y: FinancialsTransactionDetails) => x.amount.+(y.amount))
 }
 
