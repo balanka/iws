@@ -7,6 +7,6 @@ trait Service[F[_], A] {
   def list(from: Int, until: Int): F[List[A]]
   def getBy(id: String): F[Option[A]]
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[A]]
-  def findSome(model: String*): F[List[A]]
+  def findSome(from: Int, until: Int, model: String*): F[List[A]]
   def update(model: A): F[List[Int]]
 }
