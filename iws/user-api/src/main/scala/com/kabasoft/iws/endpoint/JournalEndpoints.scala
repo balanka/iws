@@ -59,11 +59,20 @@ class JournalEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 
   private def get(service: JournalService[F]): HttpRoutes[F] =
     HttpRoutes.of[F] {
-      case GET -> Root / "jou" / accountid / from / to => {
-        for {
-          retrieved <- service.findSome(accountid, from, to)
-          response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
-        } yield response
+      case GET -> Root / "jou" / accountid / fromPriod / toPeriod => {
+        val page = DefaultPage
+        val pageSize = DefaultPageSize
+        PaginationValidator.validate(page, pageSize) match {
+          case Valid(pagination) =>
+            val (from, until) = pagination.range
+            for {
+              retrieved <- service.findSome(from, until, accountid, fromPriod, toPeriod)
+              response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
+            } yield response
+
+          case Invalid(errors) =>
+            BadRequest(ErrorsJson.from(errors).asJson)
+        }
       }
       case GET -> Root / "jou" / (id) =>
         service.getBy(id).flatMap {

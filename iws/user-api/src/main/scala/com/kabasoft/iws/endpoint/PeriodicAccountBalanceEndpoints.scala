@@ -37,7 +37,7 @@ class PeriodicAccountBalanceEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           response <- Ok(updated.asJson) //.putHeaders(Header("X-Auth-Token", "value"))
         } yield response
 
-      case GET -> Root / "cust" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "pac" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -59,11 +59,20 @@ class PeriodicAccountBalanceEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 //http://localhost:8080/pets/pac/331034/202001/202004
   private def get(service: PeriodicAccountBalanceService[F]): HttpRoutes[F] =
     HttpRoutes.of[F] {
-      case GET -> Root / "pac" / accountid / from / to => {
-        for {
-          retrieved <- service.findSome(accountid, from, to)
-          response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
-        } yield response
+      case GET -> Root / "pac" / accountid / fromPriod / toPeriod => {
+        val page = DefaultPage
+        val pageSize = DefaultPageSize
+        PaginationValidator.validate(page, pageSize) match {
+          case Valid(pagination) =>
+            val (from, until) = pagination.range
+            for {
+              retrieved <- service.findSome(from, until, accountid, fromPriod, toPeriod)
+              response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
+            } yield response
+
+          case Invalid(errors) =>
+            BadRequest(ErrorsJson.from(errors).asJson)
+        }
       }
       case GET -> Root / "pacmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
