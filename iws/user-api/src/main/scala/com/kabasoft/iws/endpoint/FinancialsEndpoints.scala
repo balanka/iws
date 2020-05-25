@@ -35,9 +35,14 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
         for {
           transaction <- request.decodeJson[FinancialsTransaction]
           updated <- service.update(transaction)
-          response <- Ok(updated.asJson) //.putHeaders(Header("X-Auth-Token", "value"))
+          response <- Ok(updated.asJson)
         } yield response
-
+      case request @ PATCH -> Root / "ftr" / "post" =>
+        for {
+          transaction <- request.decodeJson[FinancialsTransaction]
+          updated <- service.post(transaction)
+          response <- Ok(updated.asJson)
+        } yield response
       case GET -> Root / "ftr" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
@@ -48,8 +53,7 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
               retrieved <- service.list(from, until + 1)
               hasNext = retrieved.size > until
               transaction = if (hasNext) retrieved.init else retrieved
-              //response <- Ok(masterfile.asJson)
-              response <- Ok("{ \"hits\": " + transaction.asJson + " }") //, `Access-Control-Allow-Origin`("*"))
+              response <- Ok("{ \"hits\": " + transaction.asJson + " }")
 
             } yield response
           case Invalid(errors) =>
