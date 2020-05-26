@@ -39,8 +39,8 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
         } yield response
       case request @ PATCH -> Root / "ftr" / "post" =>
         for {
-          transaction <- request.decodeJson[FinancialsTransaction]
-          updated <- service.post(transaction)
+          transaction <- request.decodeJson[List[FinancialsTransaction]]
+          updated <- service.postAll(transaction)
           response <- Ok(updated.asJson)
         } yield response
       case GET -> Root / "ftr" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
@@ -79,7 +79,6 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
               retrieved <- service.getByModelId(modelid, from, until)
               hasNext = retrieved.size > until
               transaction = if (hasNext) retrieved.init else retrieved
-              // tr <- transaction.map(x => x.copy(lines = service2.findSome(x.tid.toString)))
               response <- Ok("{ \"hits\": " + transaction.asJson + " }") //, `Access-Control-Allow-Origin`("*"))
 
             } yield response
