@@ -242,7 +242,7 @@ case class VatService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, 
 case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     extends Service[F, FinancialsTransaction] {
 
-  import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
+  import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails => FTDetails}
 
   implicit val moveMonoid: Monoid[PeriodicAccountBalance] =
     new Monoid[PeriodicAccountBalance] {
@@ -260,6 +260,14 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
 
       def combine(m1: PeriodicAccountBalance, m2: PeriodicAccountBalance) =
         m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+    }
+
+  implicit val FinancialsTransactionDetailsMonoid: Monoid[FTDetails] =
+    new Monoid[FTDetails] {
+      def empty =
+        FTDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR", "1000")
+
+      def combine(m1: FTDetails, m2: FTDetails) = m2.copy(amount = m2.amount.+(m1.amount))
     }
 
   def create(item: FinancialsTransaction): F[Int] = SQL.FinancialsTransaction.create(item).run.transact(transactor)
@@ -318,12 +326,10 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       .to[List]
       .map(FinancialsTransaction.apply)
       .transact(transactor)
-  // found   : List[F[List[Int]]]
-  //  [error]  required: F[List[Int]]
 
   def postAll(models: List[FinancialsTransaction]): F[List[Int]] =
     (for {
-      all <- models.traverse((model: FinancialsTransaction) => debitOrCreditPACAll(model))
+      all <- models.filter(_.posted == false).traverse(debitOrCreditPACAll(_))
     } yield all.flatten).transact(transactor)
 
   def post(model: FinancialsTransaction): F[List[Int]] = {
@@ -340,76 +346,109 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
         journalEntries: List[DJournal] = newJournalEntries(model, oldRecords ::: newRecords)
         pac_created <- newRecords.traverse(SQL.PeriodicAccountBalance.create(_).run)
         pac_updated <- oldRecords.traverse(SQL.PeriodicAccountBalance.update(_).run)
+        trans_posted <- List(model.copy(posted = true).copy(postingdate = Instant.now()))
+          .traverse(SQL.FinancialsTransaction.update2(_).run)
         journal <- journalEntries.traverse(SQL.Journal.create(_).run)
-      } yield List(pac_created, pac_updated, journal).flatten
+      } yield List(pac_created, pac_updated, journal, trans_posted).flatten
     )
 
   private[this] def debitOrCreditPAC(model: FinancialsTransaction): F[List[Int]] =
     (
       for {
-        pac <- getIds(model: FinancialsTransaction).traverse(SQL.PeriodicAccountBalance.getBy(_).option)
-        oldRecords: List[DPAC] = getOldPac(pac, model)
-        newRecords: List[DPAC] = getNewPac(pac, model)
+        pacList <- getIds(model: FinancialsTransaction).traverse(SQL.PeriodicAccountBalance.getBy(_).option)
+        oldRecords: List[DPAC] = getOldPac(pacList, model)
+        newRecords: List[DPAC] = getNewPac(pacList, model)
         journalEntries: List[DJournal] = newJournalEntries(model, oldRecords ::: newRecords)
         pac_created <- newRecords.traverse(SQL.PeriodicAccountBalance.create(_).run)
         pac_updated <- oldRecords.traverse(SQL.PeriodicAccountBalance.update(_).run)
+        trans_posted <- List(model).traverse(SQL.FinancialsTransaction.update(_).run)
         journal <- journalEntries.traverse(SQL.Journal.create(_).run)
-      } yield List(pac_created, pac_updated, journal).flatten
+      } yield List(pac_created, pac_updated, journal, trans_posted).flatten
     ).transact(transactor)
 
   private[this] def getIds(model: FinancialsTransaction): List[String] = {
     val ids: List[String] = model.lines.map(line => DPAC.createId(model.getPeriod, line.account))
     val oids: List[String] = model.lines.map(line => DPAC.createId(model.getPeriod, line.oaccount))
-    ids ++ oids
+    println("ids ++ oids>>>>>  ", (ids ++ oids).toSet.toList)
+    (ids ++ oids).toSet.toList
   }
 
   private[this] def getNewPac(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[DPAC] = {
     val newRecords = getPAC(pacList, model).filter(x => x._2 == true).map(_._1) ::: getPOAC(pacList, model)
       .filter(x => x._2 == true)
       .map(_._1)
+    println("newRecords", newRecords)
     val grouped: Iterable[DPAC] = newRecords
       .groupBy(_.id)
-      .map({ case (_, v) => v.combineAll })
+      .map({ case (_, v) => { println("grouped", v); v.combineAll } })
     val result = grouped.toList
     println("result", result)
     result
   }
 
   private[this] def getOldPac(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[DPAC] = {
-    val pacs: List[(DPAC, Boolean)] = getPAC(pacList, model)
-    val poacs: List[(DPAC, Boolean)] = getPOAC(pacList, model)
-    val oldRecords: List[DPAC] = (pacs ::: poacs).filter(x => x._2 == false).map(_._1)
-    val result: List[DPAC] = oldRecords
+    val pacs: List[DPAC] = getAndDebitCreditPacX(pacList, model.getPeriod, model.lines)
+    println("pacs>>>>", pacs)
+
+    val result: List[DPAC] = pacs
       .groupBy(_.id)
-      .map({ case (_, v) => v.combineAll })
+      .map({ case (k, v) => { println("grouped-pacs" + k, v); v.combineAll } })
+      .toSet
       .toList
+    println("result", result)
     result
   }
 
+  def getPACX(pacList: List[Option[DPAC]], period: Int, acc: String): Option[DPAC] = {
+    val pacId = DPAC.createId(period, acc)
+    pacList.flatten.toSet.find(pac_ => pac_.id == pacId)
+  }
+  def debitIt(packList: List[DPAC], line: FTDetails): Option[DPAC] =
+    packList.find(pac_ => pac_.id == DPAC.createId(period, line.account)).map(_.debiting(line.amount))
+  def creditIt(packList: List[DPAC], line: FTDetails): Option[DPAC] =
+    packList.find(pac_ => pac_.id == DPAC.createId(period, line.oaccount)).map(_.crediting(line.amount))
+
+  private[this] def getAndDebitCreditPacX(
+    pacList: List[Option[DPAC]],
+    period: Int,
+    lines: List[FTDetails]
+  ): List[DPAC] = {
+
+    val pacx1: List[DPAC] = lines.map(line => getPACX(pacList, period, line.account)).flatten.toSet.toList
+    val poacx1: List[DPAC] = lines.map(line => getPACX(pacList, period, line.oaccount)).flatten.toSet.toList
+    val groupedLines: List[FTDetails] = lines.groupBy(_.account).map({ case (k, v) =>  v.combineAll  }).toList
+    val groupedOLines: List[FTDetails] = lines.groupBy(_.oaccount).map({ case (k, v) =>  v.combineAll }).toList
+    val pacx: List[DPAC] = groupedLines.map(line => debitIt(pacx1, line)).flatten
+    val poacx: List[DPAC] = groupedOLines.map(line => creditIt(poacx1, line)).flatten
+
+    Set(pacx, poacx).flatten.toList
+  }
   private[this] def getAndDebitCreditPac(
     pacList: List[Option[DPAC]],
-    line: FinancialsTransactionDetails,
+    line: FTDetails,
     acc: String,
     period: Int,
     side: Boolean
   ): (DPAC, Boolean) = {
     val zeroAmount = BigDecimal(0)
+    println("pacListXXXXXX>>>" + side, pacList)
     val pacId = DPAC.createId(period, acc)
-    val pacx: Option[DPAC] = pacList.flatten.find(pac_ => pac_.id == pacId)
+    val pacx: Option[DPAC] = pacList.flatten.toSet.find(pac_ => pac_.id == pacId)
     pacx match {
       case Some(pac) => {
         val x: DPAC = {
-          if (acc == pac.account && side) pac.debiting(line.amount)
-          else if (line.oaccount == pac.account && !side) pac.crediting(line.amount)
-          else pac
-
+          if (side) {
+            if (acc == pac.account) pac.debiting(line.amount) else pac
+          } else {
+            if (line.oaccount == pac.account) pac.crediting(line.amount) else pac
+          }
         }
-        //println("x", x)
+        println("x", x)
         (x, false)
       }
       case None =>
         (
-          if (line.account == acc) {
+          if (line.account == acc && side) {
             DPAC.apply(
               acc,
               period.toString,
@@ -444,7 +483,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
   def getPOAC(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[(DPAC, Boolean)] =
     model.lines.map(line => getAndDebitCreditPac(pacList, line, line.oaccount, model.getPeriod, false))
   private[this] def createJournalEntries(
-    line: FinancialsTransactionDetails,
+    line: FTDetails,
     model: FinancialsTransaction,
     pacList: List[DPAC]
   ): List[DJournal] = {
@@ -458,7 +497,8 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     val poac: DPAC = pacList
       .find(poac_ => poac_.id == poacId)
       .getOrElse(DPAC.apply("", "", zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", ""))
-
+    println("pac+++++++++++++++++", pac)
+    println("poac+++++++++++++++++", poac)
     val jou1 = DJournal(
       -1,
       model.tid,

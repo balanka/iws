@@ -496,6 +496,12 @@ private object SQL {
       })
     }
 
+    def update2(model: FinancialsTransaction): Update0 = sql"""Update master_compta
+    set OID=${model.oid}, COSTCENTER=${model.costcenter}, ACCOUNT=${model.account}, TRANSDATE=${model.transdate}
+     , HEADERTEXT=${model.text}, FILE_CONTENT=${model.file_content}, TYPE_JOURNAL=${model.typeJournal}
+    ,  PERIOD=${model.period}, POSTED=${model.posted}
+     where id =${model.tid} AND POSTED=false""".update
+
     override def update(model: FinancialsTransaction): Update0 = sql"""Update master_compta
     set OID=${model.oid}, COSTCENTER=${model.costcenter}, ACCOUNT=${model.account}, TRANSDATE=${model.transdate}
      , HEADERTEXT=${model.text}, FILE_CONTENT=${model.file_content}, TYPE_JOURNAL=${model.typeJournal}
@@ -522,9 +528,12 @@ private object SQL {
       val acc: String = model(0)
       val fromPeriod: Int = model(1).toInt
       val toPeriod: Int = model(2).toInt
+      println("acc", acc)
+      println("fromPeriod", fromPeriod)
+      println("toPeriod", toPeriod)
       sql"""SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, AMOUNT,IDEBIT, DEBIT
         , ICREDIT, CREDIT, CURRENCY, SIDE, TEXT, MONTH, YEAR, COMPANY, JOURNAL_TYPE, FILE_CONTENT, MODELID
-        FROM journal WHERE ACCOUNT = $acc AND PERIOD BETWEEN $fromPeriod AND $toPeriod  ORDER BY  id ASC """.query
+        FROM journal WHERE ACCOUNT = ${acc} AND PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}  ORDER BY  id ASC """.query
     }
 
     def getByModelId(modelid: Int): Query0[Journal] =
