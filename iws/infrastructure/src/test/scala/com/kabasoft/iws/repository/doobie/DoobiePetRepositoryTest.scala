@@ -1,5 +1,6 @@
 package com.kabasoft.iws.repository.doobie
 
+/*
 import com.toracoya.petstore.pet.{MasterfileId, Pet}
 
 class DoobiePetRepositoryTest extends DoobieSpec {
@@ -44,3 +45,6 @@ class DoobiePetRepositoryTest extends DoobieSpec {
     val allPets = List(pet1, pet2, pet3)
   }
 }
+
+
+ */

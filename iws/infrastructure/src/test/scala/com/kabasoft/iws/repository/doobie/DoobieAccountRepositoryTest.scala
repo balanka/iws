@@ -1,5 +1,5 @@
 package com.kabasoft.iws.repository.doobie
-
+/*
 import com.toracoya.petstore.pet.{Account, MasterfileId}
 
 class DoobieAccountRepositoryTest extends DoobieSpec {
@@ -43,4 +43,7 @@ class DoobieAccountRepositoryTest extends DoobieSpec {
     val acc5 = Account(MasterfileId("125"), "Expenses", "ADMINISTRATION", 6, "0")
     val allAccounts = List(acc1, acc2, acc3, acc4, acc5)
   }
+
+
 }
+*/
