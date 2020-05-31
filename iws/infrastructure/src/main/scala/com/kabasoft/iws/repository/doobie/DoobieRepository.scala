@@ -213,24 +213,33 @@ private object SQL {
 
     def getBy(id: String): Query0[Account] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company,
-             modelid, ACCOUNT, isDebit, balancesheet
+             modelid, ACCOUNT, isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
      FROM account
      WHERE id = $id ORDER BY  id ASC
      """.query
 
     def getByModelId(modelid: Int): Query0[Account] = sql"""
         SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company,
-             modelid, ACCOUNT, isDebit, balancesheet
+             modelid, ACCOUNT, isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
         FROM account WHERE modelid = $modelid ORDER BY  id ASC
          """.query
 
     def findSome(model: String*): Query0[Account] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company, modelid, ACCOUNT
-            ,  isDebit, balancesheet FROM account ORDER BY id ASC """.query
+            ,  isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
+            FROM account ORDER BY id ASC """.query
 
     def list: Query0[Account] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company, modelid, ACCOUNT
-            ,  isDebit, balancesheet FROM account ORDER BY id ASC """.query
+            ,  isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
+            FROM account ORDER BY id ASC """.query
+
+    def listX(fromPeriod: Int, toPeriod: Int): Query0[Account] = sql"""SELECT A.ID, A.NAME, A.DESCRIPTION, A.enter_date
+                   , A.modified_date, A.posting_date, A.company, A.modelid, A.ACCOUNT,  A.isDebit, A.balancesheet
+                  , P.IDEBIT, P.ICREDIT, P.DEBIT, P.CREDIT
+                    FROM account A, periodic_account_balance P
+                    WHERE  A.id = P.account AND P.period between ${fromPeriod} and ${toPeriod}
+                     ORDER BY A.id""".query[Account]
 
     def delete(id: String): Update0 =
       sql"""DELETE FROM account WHERE ID = $id""".update
@@ -275,6 +284,16 @@ private object SQL {
         ORDER BY  ID ASC """.query
     }
 
+    def find4Period(model: Seq[Int]): Query0[PeriodicAccountBalance] = {
+      val fromPeriod: Int = model(0)
+      val toPeriod: Int = model(1)
+      println("fromPeriod", fromPeriod)
+      println("toPeriod", toPeriod)
+
+      sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
+        FROM periodic_account_balance WHERE  PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}
+        ORDER BY  ID ASC """.query
+    }
     def list: Query0[PeriodicAccountBalance] = sql"""
      SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
      FROM periodic_account_balance
