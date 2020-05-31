@@ -56,8 +56,22 @@ final case class Account(
   modelid: Int = 9,
   account: String = "",
   isDebit: Boolean,
-  balancesheet: Boolean
-) extends IWS
+  balancesheet: Boolean,
+  idebit: BigDecimal = BigDecimal(0),
+  icredit: BigDecimal = BigDecimal(0),
+  debit: BigDecimal = BigDecimal(0),
+  credit: BigDecimal = BigDecimal(0)
+) extends IWS {
+  def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
+  def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
+  def idebiting(amount: BigDecimal) = copy(idebit = idebit.+(amount))
+  def icrediting(amount: BigDecimal) = copy(icredit = icredit.+(amount))
+  def fdebit = debit + idebit
+  def fcredit = credit + icredit
+  def dbalance = fdebit - fcredit
+  def cbalance = fcredit - fdebit
+  def balance = if (isDebit) dbalance else cbalance
+}
 final case class PeriodicAccountBalance private (
   id: String,
   account: String,
