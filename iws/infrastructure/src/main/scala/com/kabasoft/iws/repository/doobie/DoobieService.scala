@@ -39,6 +39,14 @@ object Common {
       response <- func(query).map(_.run)
     } yield response
 
+  val zero = BigDecimal(0)
+  implicit val parentAccountMonoid: Monoid[Account] =
+    new Monoid[Account] {
+      def empty = new Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false)
+
+      def combine(m1: Account, m2: Account) =
+        m2.copy(id = m2.account).idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+    }
 }
 
 case class BankService[F[_]: Sync](transactor: Transactor[F] /*, repository1: Repository[Bank, Bank]*/ )
@@ -120,27 +128,58 @@ case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Serv
 
 }
 case class AccountService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Account] {
+  import com.kabasoft.iws.repository.doobie.Common.parentAccountMonoid
   def create(item: Account): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Account.create(item).run.transact(transactor)
+    println("item<<<<<<<<<<<", item);
+    SQL.Account.create(item).run.transact(transactor)
   }
+
   def delete(id: String): F[Int] = SQL.Account.delete(id).run.transact(transactor)
+
   def list(from: Int, until: Int): F[List[Account]] =
     paginate(until - from, from)(SQL.Account.list)
       .to[List]
       .transact(transactor)
+
   def getBy(id: String): F[Option[Account]] = SQL.Account.getBy(id).option.transact(transactor)
+
   def findSome(from: Int, until: Int, model: String*): F[List[Account]] =
     paginate(until - from, from)(SQL.Account.findSome(model: _*))
       .to[List]
       .transact(transactor)
+
   def getByModelId(modelid: Int, from: Int, until: Int): F[List[Account]] =
     paginate(until - from, from)(SQL.Account.getByModelId(modelid))
       .to[List]
       .transact(transactor)
+
   def update(model: Account): F[List[Int]] = getXX(SQL.Account.update, List(model)).sequence.transact(transactor)
 
-}
+  def getBalances(fromPeriod: Int, toPeriod: Int): F[List[Account]] =
+    (for {
+      list <- SQL.Account.listX(fromPeriod, toPeriod).to[List]
+      all <- SQL.Account.list.to[List]
+    } yield {
+      val accList = list.filter(acc => acc.fdebit != 0 || acc.fcredit != 0)
+      val f0 = accList.partition(acc => acc.balance == 0 && !acc.balancesheet)
+      val balances: List[Account] =
+        f0._2.filter(_.balance != 0).groupBy(_.account).map({ case (k, v) => v.combineAll }).toList
 
+      balances.map(
+        acc =>
+          all.find(x => x.id == acc.id) match {
+            case Some(acc1) => {
+              acc1
+                .idebiting(acc.idebit)
+                .icrediting(acc.icredit)
+                .debiting(acc.debit)
+                .crediting(acc.credit)
+            }
+            case None => { println("NONE++++++++", acc); acc }
+          }
+      )
+    }).transact(transactor)
+}
 case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Article] {
   def create(item: Article): F[Int] = {
     println("item<<<<<<<<<<<", item); SQL.Article.create(item).run.transact(transactor)
@@ -371,7 +410,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
 
     val result: List[DPAC] = pacs
       .groupBy(_.id)
-      .map({ case (_, v) =>  v.combineAll  })
+      .map({ case (_, v) => v.combineAll })
       .toSet
       .toList
     println("result", result)
