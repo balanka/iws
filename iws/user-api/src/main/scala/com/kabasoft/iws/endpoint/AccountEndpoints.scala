@@ -50,7 +50,6 @@ class AccountEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           updated <- service.update(account)
           response <- Ok(updated.asJson)
         } yield response
-
       case GET -> Root / "acc" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
@@ -68,6 +67,14 @@ class AccountEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           case Invalid(errors) =>
             BadRequest(ErrorsJson.from(errors).asJson)
         }
+      case GET -> Root / "acc" / "balance" / from / to =>
+        val fromPeriod = from.toInt
+        val toPeriod = to.toInt
+        for {
+          account <- service.getBalances(fromPeriod, toPeriod)
+          response <- Ok("{ \"hits\": " + account.asJson + " }")
+        } yield response
+
     }
 
   private def get(service: AccountService[F]): HttpRoutes[F] =
