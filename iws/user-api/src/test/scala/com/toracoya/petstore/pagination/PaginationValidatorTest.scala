@@ -1,5 +1,5 @@
 package com.toracoya.petstore.pagination
-
+/*
 import cats.data.{NonEmptyChain, NonEmptyList}
 import cats.implicits._
 import com.toracoya.petstore.APIValidation.{InvalidPage, InvalidPageSize}
@@ -38,3 +38,5 @@ class PaginationValidatorTest extends WordSpec {
     }
   }
 }
+
+ */
