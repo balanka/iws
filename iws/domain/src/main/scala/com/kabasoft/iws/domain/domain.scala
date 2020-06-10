@@ -121,6 +121,7 @@ final case class Account(
   def childBalances: BigDecimal = subAccounts.toList.combineAll.balance
 
   def setParent(p: Account) = copy(parent = Some(p.updateBalance(copy(name = name))))
+}
 
 object Account {
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
@@ -163,7 +164,6 @@ object Account {
     )
   val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false)
 
-
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
     accMap.get(account.id) match {
       case Some(acc) => account.copy(subAccounts = account.subAccounts ++ (acc.map(x => addSubAccounts(x, accMap))))
@@ -179,7 +179,7 @@ object Account {
       case s :: rest =>
         val sub = account.subAccounts.map(acc => getAllSubBalances(acc))
         val subALl = sub.toList.combineAll
-          account
+        account
           .idebiting(subALl.idebit)
           .icrediting(subALl.icredit)
           .debiting(subALl.debit)
