@@ -122,39 +122,6 @@ final case class Account(
 
   def setParent(p: Account) = copy(parent = Some(p.updateBalance(copy(name = name))))
 
-  //@tailrec
-  def getAllSubBalances: Account = {
-    import common.parentXAccountMonoid
-    val x: Account =
-      if (subAccounts.size == 0) {
-        val y = copy(name = name)
-        // println("x1<<<<<<<<subAccounts.size=0", y.id + y.name);
-        y
-      } else {
-        val sub = subAccounts.map(acc => acc.getAllSubBalances)
-        //println("sub<<<<<<<<", sub)
-        val namex = name
-        val subALl = sub.toList.combineAll
-        println("subALl<<<<<<<< id===" + id, subALl.copy(name = namex))
-        idebiting(subALl.idebit).icrediting(subALl.icredit)
-        debiting(subALl.debit).crediting(subALl.credit) //.copy(subAccounts = sub)
-      }
-    //println("x1<<<<<<<<", id + name + " subAccounts.Size: " + subAccounts.size + "getAllSubBalances =======  " + x)
-    x
-  }
-
-  def addSubAccounts(accList: Set[Account]): Account = {
-    val accx: Account = accList.groupBy(_.account).get(id) match {
-      case Some(acc) => {
-        addAll(acc.map(x => x.addSubAccounts(accList)))
-      }
-      case None => copy(name = name)
-    }
-    //println("acc>>>", accx)
-    accx
-  }
-
-}
 object Account {
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
   type Account_Type = (
@@ -195,149 +162,7 @@ object Account {
       None
     )
   val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false)
-  def addChildAndUpdate(accList: Set[Account], group: Map[String, Account]): Set[Account] =
-    accList.toList
-      .sortBy(_.id)
-      .map(
-        acc =>
-          group.get(acc.account) match {
-            case Some(accx) => { //println("acc++++++", accx);
-              //val xx=accx.add(acc).idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
-              val xx = accx.add(acc); group.+(xx.id -> xx)
-              println("v+++++", xx); xx
-            }
-            case None => acc
-          }
-      )
-      .toSet
-  def updateParent(accList: Set[Account]): Set[Account] = {
-    var group: Map[String, Account] = accList.map((acc: Account) => (acc.id, acc)).toMap
-    accList.toList
-      .filter(x => { val v: Account = x.subAccounts.toList.combineAll; v.balance > x.balance })
-      .map(
-        acc =>
-          group.get(acc.account) match {
-            case Some(accx) => {
-              val xx =
-                accx.add(acc).idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
-              group = group.+(xx.id -> xx)
-            }
-            case None => acc
-          }
-      )
-    group.toList.map(_._2).toSet
-  }
-  def reportChildBalances(accList: Set[Account], all: Set[Account]): Set[Account] = {
-    var group: Map[String, Account] = all.map((acc: Account) => (acc.id, acc)).toMap
-    val valueMap: Map[String, Account] = accList
-      .groupBy(_.account)
-      .map({
-        case (k, v) => v.toList.combineAll.copy(id = k)
-      })
-      .toSet
-      .map((acc: Account) => (acc.id, acc))
-      .toMap
-    accList.toList
-      .sortBy(_.balance)
-      .reverse
-      .map(x => {
-        // x.parent match {
-        valueMap.get(x.account) match {
-          case Some(v1) => {
-            val r = group.get(v1.id) match {
-              // case Some(acc) => acc.idebiting(v1.idebit).icrediting(v1.icredit)
-              //  .debiting(v1.debit).crediting(v1.credit)
-              case Some(acc) =>
-                acc
-                  .idebiting(x.idebit)
-                  .icrediting(x.icredit)
-                  .debiting(x.debit)
-                  .crediting(x.credit)
-              case None => v1
-            }
-            //val b = valueMap.get(x.account)
-            //val r = v1.idebiting(b._1).icrediting(b._2).debiting(b._3).crediting(b._4)
-            println("RRRRRRRRRRRRRRRRR", r);
-            group = group.+(r.id -> r)
-            // r
-          }
-          case None => { println("NOOOOOOOME", x); x }
-        }
-      });
-    // println("RRRRRRRRRRRRRRRRRXXX", group.toList.map(_._2).find(_.id=="1800"))
-    group.toList.map(_._2).toSet
-  }
-  def reportChildBalances(accList: Set[Account]): Set[Account] = {
-    var group: Map[String, Account] = accList.map((acc: Account) => (acc.id, acc)).toMap
-    val valueMap: Map[String, Account] = accList
-      .groupBy(_.account)
-      .map({
-        case (k, v) => v.toList.combineAll.copy(id = k)
-      })
-      .toSet
-      .map((acc: Account) => (acc.id, acc))
-      .toMap
-    accList.toList
-      .sortBy(_.balance)
-      .reverse
-      .map(x => {
-        // x.parent match {
-        valueMap.get(x.account) match {
-          case Some(v1) => {
-            val r = group.get(v1.id) match {
-              // case Some(acc) => acc.idebiting(v1.idebit).icrediting(v1.icredit)
-              //  .debiting(v1.debit).crediting(v1.credit)
-              case Some(acc) =>
-                acc
-                  .idebiting(x.idebit)
-                  .icrediting(x.icredit)
-                  .debiting(x.debit)
-                  .crediting(x.credit)
-              case None => v1
-            }
-            //val b = valueMap.get(x.account)
-            //val r = v1.idebiting(b._1).icrediting(b._2).debiting(b._3).crediting(b._4)
-            println("RRRRRRRRRRRRRRRRR", r);
-            group = group.+(r.id -> r)
-            // r
-          }
-          case None => { println("NOOOOOOOME", x); x }
-        }
-      });
-    // println("RRRRRRRRRRRRRRRRRXXX", group.toList.map(_._2).find(_.id=="1800"))
-    group.toList.map(_._2).toSet
-  }
-  def addSubAccountsX(accList: Set[Account], all: Set[Account]): Set[Account] =
-    accList
-      .groupBy(_.account)
-      .map({
-        case (k: String, v: Set[Account]) =>
-          accList.find(x => x.id == k) match {
-            case Some(acc) => acc.addAll(v)
-            case None => v.headOption.get
-          }
-      })
-      .toSet
 
-  def addSubAccounts1(accList: Set[Account]): Set[Account] = {
-    var group: Map[String, Account] = accList.map((acc: Account) => (acc.id, acc)).toMap
-    accList.toList
-      .sortBy(_.balance)(Ordering[BigDecimal].reverse)
-      .map(
-        acc =>
-          group.get(acc.account) match {
-            case Some(accx) => {
-              val xx = accx.copy(subAccounts = accx.subAccounts + acc)
-              group = group.+(xx.id -> xx)
-
-            }
-            case None => { println("NOOOOOOONE", acc.id + " " + acc.name); acc }
-          }
-      )
-    //if(group.size!=accList.size) println("group.size!=accList.size")
-
-    group.toList.map(_._2).toSet
-  }
 
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
     accMap.get(account.id) match {
@@ -352,20 +177,14 @@ object Account {
     account.subAccounts.toList match {
       case Nil => account
       case s :: rest =>
-        println("sub<<<<<<<<>>>>>>>>>>>", account.subAccounts)
         val sub = account.subAccounts.map(acc => getAllSubBalances(acc))
-        println("sub<<<<<<<<", sub)
         val subALl = sub.toList.combineAll
-        println("subALl<<<<<<<<", subALl)
-
-        val x = account
+          account
           .idebiting(subALl.idebit)
           .icrediting(subALl.icredit)
           .debiting(subALl.debit)
           .crediting(subALl.credit)
           .copy(subAccounts = sub)
-        println("subALlxxs<<<<<<<<XXXXXXXXX", x)
-        x
     }
 
   def consolidate(accId: String, accList: List[Account]): Account =
@@ -379,17 +198,7 @@ object Account {
         println("NOT FOUND", accId); Account.dummy
       }
     }
-  /*def consolidate(accId: String, accList: List[Account]): Account =
-    accList.find(x => x.id == accId) match {
-      case Some(acc) => {
-        println("FOUND acc>>>", acc);
-        List(acc).addSubAccounts(accList.toSet)).foldMap(_.getAllSubBalances)
-        //List(acc).foldMap(_.addSubAccounts(accList.toSet)) //.foldMap(_.getAllSubBalances)
-      }
-      case None => { println("NOT FOUND", accId); Account.dummy }
-    }
 
- */
 }
 final case class PeriodicAccountBalance private (
   id: String,
