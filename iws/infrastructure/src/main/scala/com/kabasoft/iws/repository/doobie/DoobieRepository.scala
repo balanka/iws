@@ -2,6 +2,7 @@ package com.kabasoft.iws.repository.doobie
 
 import java.time.Instant
 import java.util.Date
+
 import cats._
 import cats.data._
 import cats.Monad
@@ -15,11 +16,10 @@ import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
 import com.kabasoft.iws._
+import com.kabasoft.iws.domain.Account.Account_Type
 import com.kabasoft.iws.domain._
-
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
 import com.kabasoft.iws.domain.FinancialsTransactionDetails.FinancialsTransactionDetails_Type
-
 import com.kabasoft.iws.repository.doobie.SQL.FinancialsTransactionDetails
 import com.kabasoft.iws.repository.doobie.SQLPagination._
 
@@ -204,51 +204,57 @@ private object SQL {
     def update(model: CostCenter): Update0 = sql"""Update costcenter set id = ${model.id}, name =${model.name},
          description=${model.description}, account=${model.account}, company=${model.company}   where id =${model.id}""".update
   }
-  object Account extends Repository[Account, Account] {
+  object Account extends Repository[Account, Account_Type] {
     def create(item: Account): Update0 =
       sql"""INSERT INTO account (ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company
              , modelid, ACCOUNT, isDebit, balancesheet) VALUES  (${item.id}, ${item.name}, ${item.description}
              , ${item.postingdate}, ${item.changedate}, ${item.enterdate}, ${item.company}, ${item.modelid}
              , ${item.account}, ${item.isDebit}, ${item.balancesheet})""".update
 
-    def getBy(id: String): Query0[Account] = sql"""
+    def getBy(id: String): Query0[Account_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company,
              modelid, ACCOUNT, isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
      FROM account
      WHERE id = $id ORDER BY  id ASC
      """.query
 
-    def getByModelId(modelid: Int): Query0[Account] = sql"""
+    def getByModelId(modelid: Int): Query0[Account_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company,
              modelid, ACCOUNT, isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
         FROM account WHERE modelid = $modelid ORDER BY  id ASC
          """.query
 
-    def findSome(model: String*): Query0[Account] = sql"""
+    def findSome(model: String*): Query0[Account_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company, modelid, ACCOUNT
             ,  isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
             FROM account ORDER BY id ASC """.query
 
-    def list: Query0[Account] = sql"""
+    def list: Query0[Account_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company, modelid, ACCOUNT
             ,  isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
             FROM account ORDER BY id ASC """.query
 
-    def listX(fromPeriod: Int, toPeriod: Int): Query0[Account] = sql"""SELECT A.ID, A.NAME, A.DESCRIPTION, A.enter_date
+    def listX(fromPeriod: Int, toPeriod: Int): Query0[Account_Type] =
+      sql"""SELECT A.ID, A.NAME, A.DESCRIPTION, A.enter_date
                    , A.modified_date, A.posting_date, A.company, A.modelid, A.ACCOUNT,  A.isDebit, A.balancesheet
-                  , P.IDEBIT, P.ICREDIT, P.DEBIT, P.CREDIT
-                    FROM account A, periodic_account_balance P
-                    WHERE  A.id = P.account AND P.period between ${fromPeriod} and ${toPeriod}
-                     ORDER BY A.id""".query[Account]
+                  , CASE WHEN P.IDEBIT is NULL THEN 0 ELSE P.IDEBIT END AS IDEBIT
+                  , CASE WHEN P.ICREDIT is NULL THEN 0 ELSE P.ICREDIT END AS ICREDIT
+                  , CASE WHEN P.DEBIT is NULL THEN 0 ELSE P.DEBIT END AS DEBIT
+                  , CASE WHEN P.CREDIT is NULL THEN 0 ELSE P.CREDIT END AS CREDIT
+                  FROM account A LEFT JOIN periodic_account_balance P ON A.id = P.account
+                  AND  P.period between ${fromPeriod} and ${toPeriod}
+                  ORDER BY A.id""".query[Account_Type]
 
     def delete(id: String): Update0 =
       sql"""DELETE FROM account WHERE ID = $id""".update
 
-    def update(model: Account): Update0 =
+    def update(model: Account): Update0 = {
+      println("model", model)
       sql"""Update account set  NAME =${model.name}, DESCRIPTION=${model.description}
         , posting_date =${model.postingdate}, modified_date =${model.changedate}, enter_date = ${model.enterdate}
         , company =${model.company}, account =${model.account}, isDebit =${model.isDebit}, balancesheet =${model.balancesheet}
          where id =${model.id} """.update
+    }
 
   }
 
