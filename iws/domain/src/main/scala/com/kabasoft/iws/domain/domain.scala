@@ -86,8 +86,8 @@ final case class Account(
   icredit: BigDecimal = BigDecimal(0),
   debit: BigDecimal = BigDecimal(0),
   credit: BigDecimal = BigDecimal(0),
-  subAccounts: Set[Account] = Nil.toSet,
-  parent: Option[Account] = None
+  subAccounts: Set[Account] = Nil.toSet
+  //parent: Option[Account] = None
 ) extends IWS {
   def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
 
@@ -120,7 +120,6 @@ final case class Account(
 
   def childBalances: BigDecimal = subAccounts.toList.combineAll.balance
 
-  def setParent(p: Account) = copy(parent = Some(p.updateBalance(copy(name = name))))
 }
 
 object Account {
@@ -159,8 +158,7 @@ object Account {
       acc._13,
       acc._14,
       acc._15,
-      Nil.toSet,
-      None
+      Nil.toSet
     )
   val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false)
 
