@@ -160,52 +160,9 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F]) extends Service
   def getBalances(fromPeriod: Int, toPeriod: Int): F[List[Account]] =
     (for {
       list <- SQL.Account.listX(fromPeriod, toPeriod).map(Account.apply).to[List]
-      all <- SQL.Account.list.map(Account.apply).to[List]
     } yield {
-
-      val partition = list.partition(acc => acc.balance == 0 && acc.subAccounts.size == 0)
-      /*
-      val balanceSheetAccAccWithBalance: List[Account] =
-        partition._2.filter(x => x.balance != 0 && x.balancesheet)
-      val leafAccWithBalance: List[Account] =
-        partition._2.filter(x => x.balance != 0 && !x.balancesheet)
-          .groupBy(_.account)
-          .map({ case (k, v) => v.combineAll })
-          .toList
-
-      val balances: List[Account] = (balanceSheetAccAccWithBalance ::: leafAccWithBalance).map(
-        acc =>
-          all.find(x => x.id == acc.id) match {
-            case None => acc
-            case Some(acc1) =>
-              if (acc1.balancesheet) {
-                if (acc1.balance != 0) acc1 else acc
-              } else
-                acc
-                  .idebiting(acc1.idebit)
-                  .icrediting(acc1.icredit)
-                  .debiting(acc1.debit)
-                  .crediting(acc1.credit)
-          }
-      )
-      println("balances", balances)
-    val accWithSubAccounts = Account.addSubAccounts(partition._2.toSet, all.toSet)
-       */
-
-      //val accWithSubAccounts = Account.addSubAccounts(list.toSet, all.toSet)
-      //val accWithSubAccounts = addSubAccounts
-      //println("accWithSubAccounts>>>>>", accWithSubAccounts)
       val acc = Account.consolidate("9900", list)
-      println("acc.subAccounts.toList>>>>>", acc)
       acc.subAccounts.toList
-      //consolidated.toList
-
-      /*
-      val x11 = Account.setParent(x)
-      val x1 = Account.addSubAccounts(x11)
-      x1.toList
-
-     */
     }).transact(transactor)
 }
 case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Article] {
