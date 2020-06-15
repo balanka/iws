@@ -11,7 +11,7 @@ import java.time.ZoneId
 import cats._
 import cats.implicits._
 import com.kabasoft.iws.domain.FinancialsTransaction.FinancialsTransaction_Type2
-import com.kabasoft.iws.domain.Account.Balance_Type
+import com.kabasoft.iws.domain.Account.{Balance_Type}
 import com.kabasoft.iws.domain.common._
 
 import scala.annotation.tailrec
@@ -34,7 +34,8 @@ object common {
   val zero = BigDecimal(0)
   implicit val parentXAccountMonoid: Monoid[Account] =
     new Monoid[Account] {
-      def empty = new Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false)
+      def empty =
+        new Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
 
       def combine(m1: Account, m2: Account) =
         m2.copy(id = m2.account)
@@ -42,6 +43,27 @@ object common {
           .icrediting(m1.icredit)
           .debiting(m1.debit)
           .crediting(m1.credit)
+    }
+  implicit val baseDataMonoid: Monoid[BaseData] =
+    new Monoid[BaseData] {
+      def empty =
+        BaseData(Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, ""))
+      def combine(m1: BaseData, m2: BaseData) =
+        m2.idebiting(m1.idebit)
+          .icrediting(m1.icredit)
+          .debiting(m1.debit)
+          .crediting(m1.credit)
+
+    }
+  implicit val dataMonoid: Monoid[Data] =
+    new Monoid[Data] {
+      def empty =
+        Data(
+          BaseData(Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, ""))
+        )
+
+      def combine(m1: Data, m2: Data) = Data(m1.data.combine(m2.data))
+
     }
   val balanceMonoid: Monoid[Balance_Type] =
     new Monoid[Balance_Type] {
@@ -82,6 +104,7 @@ final case class Account(
   account: String = "",
   isDebit: Boolean,
   balancesheet: Boolean,
+  currency: String,
   idebit: BigDecimal = BigDecimal(0),
   icredit: BigDecimal = BigDecimal(0),
   debit: BigDecimal = BigDecimal(0),
@@ -136,6 +159,7 @@ object Account {
     String,
     Boolean,
     Boolean,
+    String,
     BigDecimal,
     BigDecimal,
     BigDecimal,
@@ -158,24 +182,40 @@ object Account {
       acc._13,
       acc._14,
       acc._15,
+      acc._16,
       Nil.toSet
     )
-  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false)
+  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "")
+  def group(accounts: List[Account]): List[Account] =
+    accounts
+      .groupBy(_.id)
+      .map({
+        case (k, v: List[Account]) => v.combineAll.copy(id = k)
+      })
+      .toList
 
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
     accMap.get(account.id) match {
-      case Some(acc) => account.copy(subAccounts = account.subAccounts ++ (acc.map(x => addSubAccounts(x, accMap))))
+      case Some(acc) =>
+        account.copy(subAccounts = account.subAccounts ++ (group(acc).map(x => addSubAccounts(x, accMap))))
       case None =>
         if (account.subAccounts.size > 0)
-          account.copy(subAccounts = account.subAccounts ++ (account.subAccounts.map(x => addSubAccounts(x, accMap))))
+          account.copy(
+            subAccounts = account.subAccounts ++ (group(account.subAccounts.toList).map(x => addSubAccounts(x, accMap)))
+          )
         else account
     }
-
-  def getAllSubBalances(account: Account): Account =
+  def getInitialDebitCredit(accId: String, pacs: List[PeriodicAccountBalance], side: Boolean): BigDecimal =
+    pacs.find(x => x.account == accId) match {
+      case Some(acc) => if (side) acc.idebit else acc.icredit
+      case None => BigDecimal(0)
+    }
+  def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account =
     account.subAccounts.toList match {
-      case Nil => account
+      case Nil => account.copy(idebit = getInitialDebitCredit(account.id, pacs, true),
+                               icredit = getInitialDebitCredit(account.id, pacs, false))
       case s :: rest =>
-        val sub = account.subAccounts.map(acc => getAllSubBalances(acc))
+        val sub = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
         val subALl = sub.toList.combineAll
         account
           .idebiting(subALl.idebit)
@@ -184,20 +224,76 @@ object Account {
           .crediting(subALl.credit)
           .copy(subAccounts = sub)
     }
+  def wrapAsData(account: Account): Data =
+     account.subAccounts.toList match {
+         case Nil => Data(BaseData(account))
+         case s :: rest =>
+           Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
+     }
 
-  def consolidate(accId: String, accList: List[Account]): Account =
+
+  def consolidateData(acc: Account): Data =
+    List(acc).map(wrapAsData) match {
+      case Nil => Data(BaseData(Account.dummy))
+      case account :: rest => account
+    }
+
+  def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account =
     accList.find(x => x.id == accId) match {
       case Some(acc) =>
         val accMap = accList.groupBy(_.account)
-        val x = List(acc).foldMap(addSubAccounts(_, accMap))(parentXAccountMonoid)
-        val y = List(x).foldMap(getAllSubBalances(_))(parentXAccountMonoid)
+        val x: Account = List(acc)
+          .foldMap(addSubAccounts(_, accMap))(parentXAccountMonoid)
+          .copy(id = accId)
+        val y = List(x).foldMap(getAllSubBalances(_, pacs))(parentXAccountMonoid)
         y.copy(id = acc.id)
-      case None => {
-        println("NOT FOUND", accId); Account.dummy
-      }
+      case None => Account.dummy
     }
+}
+final case class BaseData(
+  id: String,
+  name: String,
+  description: String,
+  modelId: Int = 19,
+  isDebit: Boolean,
+  balancesheet: Boolean,
+  idebit: BigDecimal,
+  icredit: BigDecimal,
+  debit: BigDecimal,
+  credit: BigDecimal,
+  currency: String,
+  company: String
+) {
+  def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
+  def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
+  def idebiting(amount: BigDecimal) = copy(idebit = idebit.+(amount))
+  def icrediting(amount: BigDecimal) = copy(icredit = icredit.+(amount))
+  def fdebit = debit + idebit
+  def fcredit = credit + icredit
+  def dbalance = fdebit - fcredit
+  def cbalance = fcredit - fdebit
+  def balance = if (isDebit) dbalance else cbalance
 
 }
+object BaseData {
+  def apply(acc: Account): BaseData =
+    BaseData(
+      acc.id,
+      acc.name,
+      acc.description,
+      19,
+      acc.isDebit,
+      acc.balancesheet,
+      acc.idebit,
+      acc.icredit,
+      acc.debit,
+      acc.credit,
+      acc.currency,
+      acc.company
+    )
+}
+final case class Data(data: BaseData, children: Seq[Data] = Nil)
+final case class Children(data: Data)
 final case class PeriodicAccountBalance private (
   id: String,
   account: String,
@@ -438,7 +534,6 @@ final case class FinancialsTransaction(
   def year: Int = common.getYear(transdate)
   def getPeriod = common.getPeriod(transdate)
 
-  //def total = lines.reduce((x: FinancialsTransactionDetails, y: FinancialsTransactionDetails) => x.amount.+(y.amount))
 }
 
 object FinancialsTransaction {

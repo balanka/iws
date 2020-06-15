@@ -213,35 +213,37 @@ private object SQL {
 
     def getBy(id: String): Query0[Account_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company,
-             modelid, ACCOUNT, isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
+             modelid, ACCOUNT, isDebit, balancesheet , currency, IDEBIT, ICREDIT, DEBIT, CREDIT
      FROM account
      WHERE id = $id ORDER BY  id ASC
      """.query
 
     def getByModelId(modelid: Int): Query0[Account_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company,
-             modelid, ACCOUNT, isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
+             modelid, ACCOUNT, isDebit, balancesheet , currency, IDEBIT, ICREDIT, DEBIT, CREDIT
         FROM account WHERE modelid = $modelid ORDER BY  id ASC
          """.query
 
     def findSome(model: String*): Query0[Account_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company, modelid, ACCOUNT
-            ,  isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
+            ,  isDebit, balancesheet , currency, IDEBIT, ICREDIT, DEBIT, CREDIT
             FROM account ORDER BY id ASC """.query
 
     def list: Query0[Account_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, posting_date, modified_date, enter_date, company, modelid, ACCOUNT
-            ,  isDebit, balancesheet , IDEBIT, ICREDIT, DEBIT, CREDIT
+            ,  isDebit, balancesheet , currency, IDEBIT, ICREDIT, DEBIT, CREDIT
             FROM account ORDER BY id ASC """.query
 
     def listX(fromPeriod: Int, toPeriod: Int): Query0[Account_Type] =
-      sql"""SELECT A.ID, A.NAME, A.DESCRIPTION, A.enter_date
-                   , A.modified_date, A.posting_date, A.company, A.modelid, A.ACCOUNT,  A.isDebit, A.balancesheet
+      sql"""SELECT A.ID, A.NAME, A.DESCRIPTION, A.posting_date
+                   , A.modified_date, A.enter_date, A.company, A.modelid, A.ACCOUNT,  A.isDebit, A.balancesheet
+                  , CASE WHEN P.currency is NULL THEN '' ELSE P.currency END AS currency
                   , CASE WHEN P.IDEBIT is NULL THEN 0 ELSE P.IDEBIT END AS IDEBIT
                   , CASE WHEN P.ICREDIT is NULL THEN 0 ELSE P.ICREDIT END AS ICREDIT
                   , CASE WHEN P.DEBIT is NULL THEN 0 ELSE P.DEBIT END AS DEBIT
                   , CASE WHEN P.CREDIT is NULL THEN 0 ELSE P.CREDIT END AS CREDIT
-                  FROM account A LEFT JOIN periodic_account_balance P ON A.id = P.account
+                  FROM account A LEFT JOIN (select account, 0 as IDebit, SUM(DEBIT) as DEBIT, 0 as ICredit, SUM(CREDIT) as CREDIT, max(period) as Period, currency
+               from periodic_account_balance Where  period between ${fromPeriod} and ${toPeriod} group by account, currency) P ON A.id = P.account
                   AND  P.period between ${fromPeriod} and ${toPeriod}
                   ORDER BY A.id""".query[Account_Type]
 
@@ -281,9 +283,6 @@ private object SQL {
       val acc: String = model(0)
       val fromPeriod: Int = model(1).toInt
       val toPeriod: Int = model(2).toInt
-      println("account", acc)
-      println("fromPeriod", fromPeriod)
-      println("toPeriod", toPeriod)
 
       sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
         FROM periodic_account_balance WHERE ACCOUNT = ${acc} AND PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}
@@ -293,10 +292,7 @@ private object SQL {
     def find4Period(model: Seq[Int]): Query0[PeriodicAccountBalance] = {
       val fromPeriod: Int = model(0)
       val toPeriod: Int = model(1)
-      println("fromPeriod", fromPeriod)
-      println("toPeriod", toPeriod)
-
-      sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
+        sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
         FROM periodic_account_balance WHERE  PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}
         ORDER BY  ID ASC """.query
     }

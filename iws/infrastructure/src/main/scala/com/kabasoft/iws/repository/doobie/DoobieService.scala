@@ -2,18 +2,17 @@ package com.kabasoft.iws.repository.doobie
 
 import java.time.Instant
 import java.time.temporal.ChronoField
+
 import cats._
 import cats.data._
 import cats.effect.{IO, Sync}
 import cats.implicits._
-
 import doobie._
 import doobie.implicits._
 import doobie.util.ExecutionContexts
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
-
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
 import com.kabasoft.iws.domain.{Journal => DJournal, PeriodicAccountBalance => DPAC}
@@ -157,12 +156,16 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F]) extends Service
 
   def update(model: Account): F[List[Int]] = getXX(SQL.Account.update, List(model)).sequence.transact(transactor)
 
-  def getBalances(fromPeriod: Int, toPeriod: Int): F[List[Account]] =
+  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int): F[Data] =
     (for {
       list <- SQL.Account.listX(fromPeriod, toPeriod).map(Account.apply).to[List]
+      period = fromPeriod.toString.slice(0, 4).concat("00").toInt
+      pacs <- SQL.PeriodicAccountBalance.find4Period(List(period, period)).to[List]
     } yield {
-      val acc = Account.consolidate("9900", list)
-      acc.subAccounts.toList
+      //val acc = Account.consolidate("9900", list.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0)))
+      val acc = Account.consolidate(accId, list, pacs)
+      val data = Account.consolidateData(acc)
+      data
     }).transact(transactor)
 }
 case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Article] {
