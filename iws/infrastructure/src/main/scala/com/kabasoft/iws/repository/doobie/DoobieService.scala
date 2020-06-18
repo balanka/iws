@@ -19,8 +19,8 @@ import com.kabasoft.iws.domain.{Journal => DJournal, PeriodicAccountBalance => D
 import com.kabasoft.iws.repository.doobie.SQL.{FinancialsTransaction, FinancialsTransactionDetails}
 import com.kabasoft.iws.service.Service
 import com.kabasoft.iws.repository.doobie.SQLPagination._
-import com.kabasoft.iws.domain.common._
-import com.kabasoft.iws.repository.doobie.Common.{getX, getXX, queryX}
+import com.kabasoft.iws.domain.PeriodicAccountBalance.pacMonoid
+import com.kabasoft.iws.repository.doobie.Common.{getX, getXX}
 
 import scala.language.higherKinds
 object Common {
@@ -120,7 +120,9 @@ case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Serv
     getXX(SQL.CostCenter.update, List(model)).sequence.transact(transactor)
 
 }
-case class AccountService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Account] {
+case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: String, inStmtAccId: String)
+    extends Service[F, Account] {
+
   //import com.kabasoft.iws.domain.common.parentAccountMonoid
   def create(item: Account): F[Int] = {
     println("item<<<<<<<<<<<", item);
@@ -167,6 +169,52 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F]) extends Service
       val data = Account.consolidateData(acc)
       data
     }).transact(transactor)
+
+  def closePeriod(fromPeriod: Int, toPeriod: Int): F[List[Int]] =
+    (for {
+      pacs <- SQL.PeriodicAccountBalance.findBalance4Period(List(fromPeriod, toPeriod)).to[List]
+      allAccounts <- SQL.Account.list.map(Account.apply).to[List]
+      currentYear = fromPeriod.toString.slice(0, 4).toInt
+      currentPeriod = currentYear.toString.concat("00").toInt
+      nextPeriod = (currentYear + 1).toString.concat("00").toInt
+      initial <- SQL.PeriodicAccountBalance.find4Period(List(currentPeriod, currentPeriod)).to[List]
+      list = Account.flattenTailRec(Set(Account.withChildren(inStmtAccId, allAccounts)))
+      initpacList = (pacs ++ initial)
+        .groupBy(_.account)
+        .map({ case (k, v) => v.combineAll(pacMonoid) })
+        .toList
+
+      filteredList = initpacList.filterNot(x => {
+        list.find(_.id == x.account) match {
+          case Some(_) => true
+          case None => false
+        }
+      })
+
+      pacList = filteredList
+        .filterNot(x => (x.dbalance == 0 || x.cbalance == 0))
+        .map(pac => {
+          allAccounts.find(_.id == pac.account) match {
+            case Some(acc) =>
+              if (acc.isDebit)
+                pac
+                  .copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)
+                  .idebiting(pac.debit - pac.icredit - pac.credit)
+                  .copy(debit = 0)
+                  .copy(icredit = 0)
+                  .copy(credit = 0)
+              else
+                pac
+                  .copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)
+                  .icrediting(pac.credit - pac.idebit - pac.debit)
+                  .copy(credit = 0)
+                  .copy(idebit = 0)
+                  .copy(debit = 0)
+            case None => { println("NO ACCOUNT  FOUND for PAC", pac); pac }
+          }
+        })
+      pac_created <- pacList.traverse(SQL.PeriodicAccountBalance.create(_).run)
+    } yield pac_created).transact(transactor)
 }
 case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Article] {
   def create(item: Article): F[Int] = {
@@ -270,24 +318,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     extends Service[F, FinancialsTransaction] {
 
   import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails => FTDetails}
-
-  implicit val moveMonoid: Monoid[PeriodicAccountBalance] =
-    new Monoid[PeriodicAccountBalance] {
-      def empty =
-        PeriodicAccountBalance(
-          "",
-          "0",
-          BigDecimal(0),
-          BigDecimal(0),
-          BigDecimal(0),
-          BigDecimal(0),
-          "1000",
-          "EUR"
-        )
-
-      def combine(m1: PeriodicAccountBalance, m2: PeriodicAccountBalance) =
-        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
-    }
+  import com.kabasoft.iws.domain.PeriodicAccountBalance.pacMonoid
 
   implicit val FinancialsTransactionDetailsMonoid: Monoid[FTDetails] =
     new Monoid[FTDetails] {

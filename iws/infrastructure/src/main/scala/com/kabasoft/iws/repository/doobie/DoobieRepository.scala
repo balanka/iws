@@ -261,10 +261,12 @@ private object SQL {
   }
 
   object PeriodicAccountBalance extends Repository[PeriodicAccountBalance, PeriodicAccountBalance] {
-    def create(item: PeriodicAccountBalance): Update0 =
+    def create(item: PeriodicAccountBalance): Update0 = {
+      println("item>>>>", item)
       sql"""INSERT INTO periodic_account_balance (ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid) VALUES (
               ${item.id}, ${item.account}, ${item.period}, ${item.idebit}, ${item.icredit}, ${item.debit}, ${item.credit}
              , ${item.company}, ${item.currency}, ${item.modelid} )""".update
+    }
 
     def getBy(id: String): Query0[PeriodicAccountBalance] = sql"""
      SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
@@ -292,9 +294,18 @@ private object SQL {
     def find4Period(model: Seq[Int]): Query0[PeriodicAccountBalance] = {
       val fromPeriod: Int = model(0)
       val toPeriod: Int = model(1)
-        sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
+      sql"""SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
         FROM periodic_account_balance WHERE  PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}
         ORDER BY  ID ASC """.query
+    }
+
+    def findBalance4Period(model: Seq[Int]): Query0[PeriodicAccountBalance] = {
+      val fromPeriod: Int = model(0)
+      val toPeriod: Int = model(1)
+      sql"""SELECT '0' as ID, ACCOUNT, 0 as PERIOD, 0 as IDEBIT , 0 AS ICREDIT, SUM(DEBIT) AS DEBIT
+             , SUM(CREDIT)  AS CREDIT,  company, CURRENCY, modelid
+        FROM periodic_account_balance WHERE  PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}
+        GROUP BY  ACCOUNT, company, CURRENCY, modelid ORDER BY ACCOUNT ASC """.query
     }
     def list: Query0[PeriodicAccountBalance] = sql"""
      SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid

@@ -130,7 +130,7 @@ final case class Account(
 
   def balance = if (isDebit) dbalance else cbalance
 
-  def incomeStmt = account.isEmpty
+  def incomeStmt(accId: String) = account.isEmpty
 
   def add(acc: Account): Account =
     copy(subAccounts = subAccounts + acc);
@@ -143,6 +143,10 @@ final case class Account(
 
   def childBalances: BigDecimal = subAccounts.toList.combineAll.balance
 
+  def getChildren(): Set[Account] = subAccounts.toList match {
+    case Nil => Set(copy(id = id))
+    case x :: xs => Set(x) ++ xs.flatMap(_.getChildren)
+  }
 }
 
 object Account {
@@ -185,7 +189,7 @@ object Account {
       acc._16,
       Nil.toSet
     )
-  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "")
+  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
   def group(accounts: List[Account]): List[Account] =
     accounts
       .groupBy(_.id)
@@ -194,6 +198,30 @@ object Account {
       })
       .toList
 
+  def removeSubAccounts(account: Account): Account =
+    account.subAccounts.toList match {
+      case Nil => account
+      case s :: rest =>
+        val sub = account.subAccounts.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0))
+        if (account.subAccounts.size > 0)
+          account.copy(subAccounts = sub.map(removeSubAccounts))
+        else account
+    }
+  def addSubAccounts2(account: Account, accMap: Map[String, List[Account]]): Account =
+    accMap.get(account.id) match {
+      case Some(acc) => {
+        val x = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap))
+        println("FOUND XXXX>>>>  " + acc.size, x)
+        //account.copy(subAccounts = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap)))
+        account.copy(subAccounts = x)
+      }
+      case None =>
+        if (account.subAccounts.size > 0)
+          account.copy(
+            subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
+          )
+        else account
+    }
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
     accMap.get(account.id) match {
       case Some(acc) =>
@@ -212,8 +240,11 @@ object Account {
     }
   def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account =
     account.subAccounts.toList match {
-      case Nil => account.copy(idebit = getInitialDebitCredit(account.id, pacs, true),
-                               icredit = getInitialDebitCredit(account.id, pacs, false))
+      case Nil =>
+        account.copy(
+          idebit = getInitialDebitCredit(account.id, pacs, true),
+          icredit = getInitialDebitCredit(account.id, pacs, false)
+        )
       case s :: rest =>
         val sub = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
         val subALl = sub.toList.combineAll
@@ -225,12 +256,11 @@ object Account {
           .copy(subAccounts = sub)
     }
   def wrapAsData(account: Account): Data =
-     account.subAccounts.toList match {
-         case Nil => Data(BaseData(account))
-         case s :: rest =>
-           Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
-     }
-
+    account.subAccounts.toList match {
+      case Nil => Data(BaseData(account))
+      case s :: rest =>
+        Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
+    }
 
   def consolidateData(acc: Account): Data =
     List(acc).map(wrapAsData) match {
@@ -246,9 +276,26 @@ object Account {
           .foldMap(addSubAccounts(_, accMap))(parentXAccountMonoid)
           .copy(id = accId)
         val y = List(x).foldMap(getAllSubBalances(_, pacs))(parentXAccountMonoid)
-        y.copy(id = acc.id)
+        removeSubAccounts(y.copy(id = acc.id))
       case None => Account.dummy
     }
+
+  def withChildren(accId: String, accList: List[Account]): Account =
+    accList.find(x => x.id == accId) match {
+      case Some(acc) =>
+        List(acc)
+          .foldMap(addSubAccounts2(_, accList.groupBy(_.account)))(parentXAccountMonoid)
+          .copy(id = accId)
+      case None => Account.dummy
+    }
+  def flattenTailRec(ls: Set[Account]): Set[Account] = {
+    @tailrec
+    def flattenR(res: List[Account], rem: List[Account]): List[Account] = rem match {
+      case Nil => res
+      case (head: Account) :: tail => flattenR(res ++ List(head), head.subAccounts.toList ++ tail)
+    }
+    flattenR(List.empty[Account], ls.toList).toSet
+  }
 }
 final case class BaseData(
   id: String,
@@ -293,7 +340,7 @@ object BaseData {
     )
 }
 final case class Data(data: BaseData, children: Seq[Data] = Nil)
-final case class Children(data: Data)
+//final case class Children(data: Data)
 final case class PeriodicAccountBalance private (
   id: String,
   account: String,
@@ -388,6 +435,23 @@ object PeriodicAccountBalance {
     )
   def createId(period: Int, accountId: String) = period.toString.concat(accountId)
 
+  implicit val pacMonoid: Monoid[PeriodicAccountBalance] =
+    new Monoid[PeriodicAccountBalance] {
+      def empty =
+        PeriodicAccountBalance(
+          "",
+          "0",
+          BigDecimal(0),
+          BigDecimal(0),
+          BigDecimal(0),
+          BigDecimal(0),
+          "1000",
+          "EUR"
+        )
+
+      def combine(m1: PeriodicAccountBalance, m2: PeriodicAccountBalance) =
+        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+    }
 }
 final case class Bank(
   id: String,

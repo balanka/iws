@@ -1,6 +1,6 @@
 package com.kabasoft.iws
 
-import com.kabasoft.iws.config.PetStoreConfig
+import com.kabasoft.iws.config.IwsConfig
 import com.kabasoft.iws.repository.doobie.{
   AccountService,
   ArticleService,
@@ -40,7 +40,7 @@ object Server extends IOApp {
 
   private def buildServer[F[_]: ContextShift: ConcurrentEffect: Monad: Timer] =
     for {
-      config <- Resource.liftF(parser.decodePathF[F, PetStoreConfig]("petstore"))
+      config <- Resource.liftF(parser.decodePathF[F, IwsConfig]("iws"))
       httpApp <- buildHttpApp[F](config)
       server <- BlazeServerBuilder[F]
         .bindHttp(config.port, config.host)
@@ -48,14 +48,15 @@ object Server extends IOApp {
         .resource
     } yield server
 
-  private def buildHttpApp[F[_]: ContextShift: ConcurrentEffect: Monad: Timer](config: PetStoreConfig) =
+  private def buildHttpApp[F[_]: ContextShift: ConcurrentEffect: Monad: Timer](config: IwsConfig) =
     for {
       transactor <- config.db.transactor
-
       cc_endpoints = endpoint.CostCenterEndpoints(CostCenterService(transactor))
       art_endpoints = endpoint.ArticleEndpoints(ArticleService(transactor))
       mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(transactor))
-      acc_endpoints = endpoint.AccountEndpoints(AccountService(transactor))
+      acc_endpoints = endpoint.AccountEndpoints(
+        AccountService(transactor, config.app.balanceSheetAccountId, config.app.incomeStmtAccountId)
+      )
       pac_endpoints = endpoint.PeriodicAccountBalanceEndpoints(
         PeriodicAccountBalanceService(transactor)
       )

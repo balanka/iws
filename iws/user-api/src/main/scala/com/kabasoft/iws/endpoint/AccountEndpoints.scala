@@ -67,14 +67,22 @@ class AccountEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           case Invalid(errors) =>
             BadRequest(ErrorsJson.from(errors).asJson)
         }
-      case GET -> Root / "acc" / "balance" / from / to =>
+      case GET -> Root / "acc" / "balance" / account / from / to =>
+        val acc = account
         val fromPeriod = from.toInt
         val toPeriod = to.toInt
         for {
-          account <- service.getBalances(fromPeriod, toPeriod)
-          response <- Ok("{ \"hits\": " + account.asJson + " }")
+          account <- service.getBalances(acc, fromPeriod, toPeriod)
+          response <- Ok("{\"data\":[ " + account.asJson + "]}")
         } yield response
 
+      case GET -> Root / "acc" / "close" / from / to =>
+        val fromPeriod = from.toInt
+        val toPeriod = to.toInt
+        for {
+          account <- service.closePeriod(fromPeriod, toPeriod)
+          response <- Ok("{\"hits\":" + account.asJson + "}")
+        } yield response
     }
 
   private def get(service: AccountService[F]): HttpRoutes[F] =
