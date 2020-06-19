@@ -3,7 +3,7 @@ package com.toracoya.petstore.pet
 import org.scalatest.WordSpec
 
 class PetsTest extends WordSpec {
-/*
+  /*
   "#count" when {
     "empty" should {
       "return 0" in {

@@ -20,27 +20,32 @@ ThisBuild / scalacOptions ++= Seq(
   //"-Ypartial-unification"
 )
 
-val catsVersion = "2.0.0"
+val catsVersion = "2.1.1"
 //val catsEffectVersion = "2.0.0" //"1.3.0"
-val http4sVersion = "0.21.0-M6"
-val circeVersion = "0.12.2"
-val circeGenericVersion = "0.12.2"
+val http4sVersion = "0.21.4"
+val circeVersion = "0.13.0"
+val circeGenericVersion = "0.13.0"
 val circeConfigVersion = "0.7.0"
 val doobieVersion = "0.8.6"
 val logbackVersion = "1.2.3"
-val scalaTestVersion = "3.0.8"
+val EnumeratumCirceVersion = "1.6.1"
 val mockitoScalaVersion = "1.4.0-beta.8"
 val `zio-version`= "1.0.0-RC17" //"1.0-RC-5"
 val `zio-interop` = "2.0.0.0-RC8"
-//val KindProjectorVersion = "0.11.1-SNAPSHOT"
 val KindProjectorVersion = "0.11.0"
+val LogbackVersion = "1.2.3"
+val ScalaCheckVersion = "1.14.3"
+val ScalaTestVersion = "3.2.0"
+val ScalaTestPlusVersion = "3.2.0.0"
+val FlywayVersion = "6.4.4"
+val TsecVersion = "0.2.1"
 
 
 lazy val commonDependencies = Seq(
   "org.typelevel" %% "cats-core"   % catsVersion,
  // "org.typelevel" %% "cats-effect" % catsEffectVersion,
   "ch.qos.logback" %  "logback-classic" % logbackVersion,
-  "org.scalatest" %% "scalatest" % scalaTestVersion % Test
+  "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
   //"org.mockito" %% "mockito-scala" % mockitoScalaVersion % Test,
   //"org.mockito" %% "mockito-scala-scalatest" % mockitoScalaVersion % Test
 )
@@ -50,6 +55,8 @@ lazy val databaseDependencies = Seq(
   "org.tpolecat" %% "doobie-core"              % doobieVersion,
   "org.tpolecat" %% "doobie-hikari"            % doobieVersion,
   "org.tpolecat" %% "doobie-postgres"          % doobieVersion,
+  "org.flywaydb" % "flyway-core" % FlywayVersion,
+  "com.beachape" %% "enumeratum-circe" % EnumeratumCirceVersion,
   "org.tpolecat" %% "doobie-scalatest"         % doobieVersion % Test
 )
 
@@ -93,6 +100,7 @@ lazy val userAPI = project
     "org.http4s" %% "http4s-dsl"          % http4sVersion,
     "org.http4s" %% "http4s-blaze-server" % http4sVersion,
     "org.http4s" %% "http4s-circe"        % http4sVersion,
+    "org.http4s" %% "http4s-blaze-client" % http4sVersion % Test,
      "dev.zio" %% "zio" %  `zio-version`,
      "dev.zio" %% "zio-test" % `zio-version` % "test",
      "dev.zio" %% "zio-test-sbt" % `zio-version` % "test",

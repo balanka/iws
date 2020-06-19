@@ -1,6 +1,7 @@
 package com.kabasoft.iws
 
 import com.kabasoft.iws.config.IwsConfig
+import com.kabasoft.iws.config.IwsConfig._
 import com.kabasoft.iws.repository.doobie.{
   AccountService,
   ArticleService,
@@ -8,6 +9,7 @@ import com.kabasoft.iws.repository.doobie.{
   BankStatementService,
   CostCenterService,
   CustomerService,
+  DatabaseConfig,
   FinancialsTransactionService,
   JournalService,
   MasterfileService,
@@ -17,64 +19,54 @@ import com.kabasoft.iws.repository.doobie.{
   VatService
 }
 
-import cats.Monad
 import cats.effect._
 import cats.implicits._
 import io.circe.config.parser
+import io.circe.config.parser._
 import org.http4s.implicits._
-import org.http4s.server.syntax._
-import org.http4s.server.Router
-import org.http4s.server.middleware.CORS
+import org.http4s.server.{Router, Server => H4Server}
 import org.http4s.server.blaze.BlazeServerBuilder
-
-import scala.language.higherKinds
+import doobie.util.ExecutionContexts
 
 object Server extends IOApp {
 
-  override def run(args: List[String]): IO[ExitCode] =
-    buildServer
-      .use { _ =>
-        IO.never
-      }
-      .as(ExitCode.Success)
-
-  private def buildServer[F[_]: ContextShift: ConcurrentEffect: Monad: Timer] =
+  def createServer[F[_]: ContextShift: ConcurrentEffect: Timer]: Resource[F, H4Server[F]] =
     for {
       config <- Resource.liftF(parser.decodePathF[F, IwsConfig]("iws"))
-      httpApp <- buildHttpApp[F](config)
-      server <- BlazeServerBuilder[F]
-        .bindHttp(config.port, config.host)
-        .withHttpApp(CORS(httpApp))
-        .resource
-    } yield server
-
-  private def buildHttpApp[F[_]: ContextShift: ConcurrentEffect: Monad: Timer](config: IwsConfig) =
-    for {
-      transactor <- config.db.transactor
-      cc_endpoints = endpoint.CostCenterEndpoints(CostCenterService(transactor))
-      art_endpoints = endpoint.ArticleEndpoints(ArticleService(transactor))
-      mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(transactor))
+      serverEc <- ExecutionContexts.cachedThreadPool[F]
+      connEc <- ExecutionContexts.fixedThreadPool[F](config.db.connections.poolSize)
+      txnEc <- ExecutionContexts.cachedThreadPool[F]
+      xa <- DatabaseConfig.dbTransactor(config.db, connEc, Blocker.liftExecutionContext(txnEc))
+      cc_endpoints = endpoint.CostCenterEndpoints(CostCenterService(xa))
+      art_endpoints = endpoint.ArticleEndpoints(ArticleService(xa))
+      mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(xa))
       acc_endpoints = endpoint.AccountEndpoints(
-        AccountService(transactor, config.app.balanceSheetAccountId, config.app.incomeStmtAccountId)
+        AccountService(xa, config.app.balanceSheetAccountId, config.app.incomeStmtAccountId)
       )
       pac_endpoints = endpoint.PeriodicAccountBalanceEndpoints(
-        PeriodicAccountBalanceService(transactor)
+        PeriodicAccountBalanceService(xa)
       )
-      customer_endpoints = endpoint.CustomerEndpoints(CustomerService(transactor))
-      supplier_endpoints = endpoint.SupplierEndpoints(SupplierService(transactor))
-      routes_endpoints = endpoint.RoutesEndpoints(RoutesService(transactor))
+      customer_endpoints = endpoint.CustomerEndpoints(CustomerService(xa))
+      supplier_endpoints = endpoint.SupplierEndpoints(SupplierService(xa))
+      routes_endpoints = endpoint.RoutesEndpoints(RoutesService(xa))
       financials_endpoints = endpoint.FinancialsEndpoints(
-        FinancialsTransactionService(transactor)
+        FinancialsTransactionService(xa)
       )
-      journal_endpoints = endpoint.JournalEndpoints(JournalService(transactor))
+      journal_endpoints = endpoint.JournalEndpoints(JournalService(xa))
       bankstmt_endpoints = endpoint.BankStatementEndpoints(
-        BankStatementService(transactor)
+        BankStatementService(xa)
       )
-      bank_endpoints = endpoint.BankEndpoints(BankService(transactor))
-      vat_endpoints = endpoint.VatEndpoints(VatService(transactor))
+      bank_endpoints = endpoint.BankEndpoints(BankService(xa))
+      vat_endpoints = endpoint.VatEndpoints(VatService(xa))
       endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+> bank_endpoints <+> vat_endpoints <+>
         routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
         financials_endpoints <+> pac_endpoints <+> journal_endpoints <+> bankstmt_endpoints
-    } yield Router("/pets" -> endpoints).orNotFound //yield Router("/mtf" -> mtf_endpoints, "/pets" -> endpoints, "/acc" -> acc_endpoints).orNotFound //yield Router("/" -> endpoints).orNotFound
+      httpApp = Router("/pets" -> endpoints).orNotFound
+      server <- BlazeServerBuilder[F](serverEc)
+        .bindHttp(config.server.port, config.server.host)
+        .withHttpApp(httpApp)
+        .resource
+    } yield server
 
+  def run(args: List[String]): IO[ExitCode] = createServer.use(_ => IO.never).as(ExitCode.Success)
 }
