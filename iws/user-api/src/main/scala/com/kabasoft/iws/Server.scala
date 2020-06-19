@@ -26,6 +26,7 @@ import io.circe.config.parser._
 import org.http4s.implicits._
 import org.http4s.server.{Router, Server => H4Server}
 import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.server.middleware.CORS
 import doobie.util.ExecutionContexts
 
 object Server extends IOApp {
@@ -64,7 +65,7 @@ object Server extends IOApp {
       httpApp = Router("/pets" -> endpoints).orNotFound
       server <- BlazeServerBuilder[F](serverEc)
         .bindHttp(config.server.port, config.server.host)
-        .withHttpApp(httpApp)
+        .withHttpApp(CORS(httpApp))
         .resource
     } yield server
 
