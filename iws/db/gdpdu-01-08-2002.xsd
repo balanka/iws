@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Versions available:
+    1.1 (August-01-2002)
+-->
+<!-- Start Simple Types -->
+<!-- Supplementary Vocabulary -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    <xs:element name="Version" type="xs:string"/>
+    <xs:element name="Location" type="xs:string"/>
+    <xs:element name="Comment" type="xs:string"/>
+    <xs:element name="Length" type="xs:string"/>
+    <xs:element name="References" type="xs:string"/>
+    <xs:element name="From" type="xs:string"/>
+    <xs:element name="To" type="xs:string"/>
+    <!--
+        Specifying a maximum length for a VariableLength column can
+        reduce a VariableLength tables' import time. If MaxLength
+            is not specified then we parse URL to determine the MaxLength
+            for each column.
+        
+            * Only applies to VariableLength tables.
+    -->
+    <xs:element name="MaxLength" type="xs:string"/>
+    <!--
+        Specifies which character (if any) encapsulates a
+        VariableLength AlphaNumeric column.
+        
+            Doublequote is the default TextEncapsulator "
+        
+            * Only applies to VariableLength tables. (Optional)
+    -->
+    <xs:element name="TextEncapsulator" type="xs:string"/>
+    <!--
+        Specifies how many	digits appear to the right of the decimal symbol.
+        
+        CAUTION: Results are undefined when importing numeric data with
+        	 greater Accuracy than the Accuracy defined in index.xml			
+        
+        		 For example trying to import the value 1000,25 with an
+        		 accuracy of 0 might result in 1000 or an error. This
+        		 behavior is specific to the implementation.
+        
+        Zero is the default Accuracy '0' (Optional)	 	
+    -->
+    <xs:element name="Accuracy" type="xs:string"/>
+    <!--
+        The decimal place is not always stored with numbers. If each number
+        is supposed to have decimal places use ImpliedAccuracy
+    -->
+    <xs:element name="ImpliedAccuracy" type="xs:string"/>
+    <!--
+        Enables you to change how GDPdU displays dates.
+        DD.MM.YYYY is the default Format
+    -->
+    <xs:element name="Format" type="xs:string"/>
+    <!--
+        Specifies the symbol that indicates decimal values.
+        Comma is the default DecimalSymbol. ','
+            Specified once per Table.
+    -->
+    <xs:element name="DecimalSymbol" type="xs:string"/>
+    <!--
+        Specifies the symbol that groups the digits in large numbers.
+        Dot is the default DigitGroupingSymbol or ThousandsSeperator. '.'
+            Specified once per Table
+    -->
+    <xs:element name="DigitGroupingSymbol" type="xs:string"/>
+    <!--
+        Command(s) are executed in the following manner
+        * before the import process
+            * after the import process
+            * before a Media is imported
+            * after a Media is imported
+    -->
+    <xs:element name="Command" type="xs:string"/>
+    <!--
+        Only the file protocol is supported at this time.
+        
+        * The standard uses relative URLs.
+        
+            Absolute URLs are not allowed. The following are all invalid:
+            * http://www.somewhere.com/data/Accounts.dat
+            * ftp://ftp.somewhere.com/data/Accounts.dat
+            * file://localhost/Accounts.dat
+        * file:///Accounts.dat
+        
+            The following are valid examples
+             * Accounts.dat	
+         * data/Accounts.dat
+         * data/january/Accounts.dat
+         * ../Accounts.dat
+    -->
+    <xs:element name="URL" type="xs:string"/>
+    <!-- Textual description of specified element (Optional) -->
+    <xs:element name="Description" type="xs:string"/>
+    <!--
+        The logical name of specified element.
+        Sometimes referred to business name.
+        
+            If missing, URL will be used in place of Name.
+    -->
+    <xs:element name="Name" type="xs:string"/>
+    <!--
+        Y2K Window Any year before Epoch is 2000+
+        Default value 30.
+    -->
+    <xs:element name="Epoch" type="xs:string"/>
+    <!--
+        Element(s) that separate columns or records.
+        Semicolon is the default ColumnDelimiter. ';'
+            CRLF or &#13;&#10; is the default RecordDelimiter.
+    -->
+    <xs:element name="ColumnDelimiter" type="xs:string"/>
+    <xs:element name="RecordDelimiter" type="xs:string"/>
+    <!--
+        The number of bytes skipped before reading of URL commences.
+        Zero is the default when not specified. '0'
+    -->
+    <xs:element name="SkipNumBytes" type="xs:string"/>
+    <!-- End Simple Types -->
+    <!-- Start Complex Types -->
+    <!-- Self-explanatory -->
+    <xs:element name="Range">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="From"/>
+                <xs:choice minOccurs="0">
+                    <xs:element ref="To"/>
+                    <xs:element ref="Length"/>
+                </xs:choice>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="FixedRange">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="From"/>
+                <xs:choice>
+                    <xs:element ref="To"/>
+                    <xs:element ref="Length"/>
+                </xs:choice>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!-- The document element -->
+    <xs:element name="DataSet">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Version"/>
+                <xs:element minOccurs="0" ref="DataSupplier"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Command"/>
+                <xs:element maxOccurs="unbounded" ref="Media"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Command"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!-- Supported datatypes (mandatory) -->
+    <xs:element name="AlphaNumeric">
+        <xs:complexType/>
+    </xs:element>
+    <xs:element name="Date">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element minOccurs="0" ref="Format"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="Numeric">
+        <xs:complexType>
+            <xs:choice minOccurs="0">
+                <xs:element ref="ImpliedAccuracy"/>
+                <xs:element ref="Accuracy"/>
+            </xs:choice>
+        </xs:complexType>
+    </xs:element>
+    <!--
+        Supported codepages:
+        Be careful to explicitly define RecordDelimiter when using
+            a non-default codepage.
+        
+        ANSI is the default codepage when not specified
+    -->
+    <xs:element name="ANSI">
+        <xs:complexType/>
+    </xs:element>
+    <xs:element name="Macintosh">
+        <xs:complexType/>
+    </xs:element>
+    <xs:element name="OEM">
+        <xs:complexType/>
+    </xs:element>
+    <xs:element name="UTF16">
+        <xs:complexType/>
+    </xs:element>
+    <xs:element name="UTF7">
+        <xs:complexType/>
+    </xs:element>
+    <xs:element name="UTF8">
+        <xs:complexType/>
+    </xs:element>
+    <!--
+        Supported file formats:
+        FixedLength
+            VariableLength
+    -->
+    <xs:element name="FixedLength">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice minOccurs="0">
+                    <xs:element ref="Length"/>
+                    <xs:element ref="RecordDelimiter"/>
+                </xs:choice>
+                <xs:choice>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" ref="FixedPrimaryKey"/>
+                        <xs:element minOccurs="0" maxOccurs="unbounded" ref="FixedColumn"/>
+                    </xs:sequence>
+                    <xs:element maxOccurs="unbounded" ref="FixedColumn"/>
+                </xs:choice>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="ForeignKey"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="FixedColumn">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Name"/>
+                <xs:element minOccurs="0" ref="Description"/>
+                <xs:choice>
+                    <xs:element ref="Numeric"/>
+                    <xs:element ref="AlphaNumeric"/>
+                    <xs:element ref="Date"/>
+                </xs:choice>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Map"/>
+                <xs:element ref="FixedRange"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="FixedPrimaryKey">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Name"/>
+                <xs:element minOccurs="0" ref="Description"/>
+                <xs:choice>
+                    <xs:element ref="Numeric"/>
+                    <xs:element ref="AlphaNumeric"/>
+                    <xs:element ref="Date"/>
+                </xs:choice>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Map"/>
+                <xs:element ref="FixedRange"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="VariableLength">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element minOccurs="0" ref="ColumnDelimiter"/>
+                <xs:element minOccurs="0" ref="RecordDelimiter"/>
+                <xs:element minOccurs="0" ref="TextEncapsulator"/>
+                <xs:choice>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" ref="VariablePrimaryKey"/>
+                        <xs:element minOccurs="0" maxOccurs="unbounded" ref="VariableColumn"/>
+                    </xs:sequence>
+                    <xs:element maxOccurs="unbounded" ref="VariableColumn"/>
+                </xs:choice>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="ForeignKey"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="VariableColumn">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Name"/>
+                <xs:element minOccurs="0" ref="Description"/>
+                <xs:choice>
+                    <xs:element ref="Numeric"/>
+                    <xs:sequence>
+                        <xs:element ref="AlphaNumeric"/>
+                        <xs:element minOccurs="0" ref="MaxLength"/>
+                    </xs:sequence>
+                    <xs:element ref="Date"/>
+                </xs:choice>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Map"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="VariablePrimaryKey">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Name"/>
+                <xs:element minOccurs="0" ref="Description"/>
+                <xs:choice>
+                    <xs:element ref="Numeric"/>
+                    <xs:sequence>
+                        <xs:element ref="AlphaNumeric"/>
+                        <xs:element minOccurs="0" ref="MaxLength"/>
+                    </xs:sequence>
+                    <xs:element ref="Date"/>
+                </xs:choice>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Map"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!-- Description of the entity supplying the data. (Optional) -->
+    <xs:element name="DataSupplier">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Name"/>
+                <xs:element ref="Location"/>
+                <xs:element ref="Comment"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!-- The first Media will contain index.xml. Importing will process each media listed -->
+    <xs:element name="Media">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Name"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Command"/>
+                <xs:element maxOccurs="unbounded" ref="Table"/>
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="Command"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!-- Elements common to FixedLength & VariableLength are propagated to Table. -->
+    <xs:element name="Table">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="URL"/>
+                <xs:element minOccurs="0" ref="Name"/>
+                <xs:element minOccurs="0" ref="Description"/>
+                <xs:element minOccurs="0" ref="Validity"/>
+                <xs:choice minOccurs="0">
+                    <xs:element ref="ANSI"/>
+                    <xs:element ref="Macintosh"/>
+                    <xs:element ref="OEM"/>
+                    <xs:element ref="UTF16"/>
+                    <xs:element ref="UTF7"/>
+                    <xs:element ref="UTF8"/>
+                </xs:choice>
+                <xs:sequence minOccurs="0">
+                    <xs:element ref="DecimalSymbol"/>
+                    <xs:element ref="DigitGroupingSymbol"/>
+                </xs:sequence>
+                <xs:element minOccurs="0" ref="SkipNumBytes"/>
+                <xs:element minOccurs="0" ref="Range"/>
+                <xs:element minOccurs="0" ref="Epoch"/>
+                <xs:choice>
+                    <xs:element ref="VariableLength"/>
+                    <xs:element ref="FixedLength"/>
+                </xs:choice>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!--
+        ForeignKeys denote joins or relationships between tables.
+        To successfully join two tables make sure both the PrimaryKey
+            and the referenced column (foreignkey) are of the same datatype.
+            Results are undefined when joining two tables with different
+            key datatypes. Most likely an error will occur.
+    -->
+    <xs:element name="ForeignKey">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" ref="Name"/>
+                <xs:element ref="References"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!--
+        Maps AlphaNumeric columns from 'From' to 'To'
+        ie. From         To
+        	============ =============
+        	    True         1
+        	    True         -1
+        	    False        0
+        
+            Basically, a map is an associative container.		
+        
+            The standard implementation only supports
+            AlphaNumeric datatypes. The following
+            conversions are NOT supported.
+        
+            Numeric      -> AlphaNumeric
+            Date         -> AlphaNumeric
+            AplhaNumeric -> Date
+            AlphaNumeric -> Numeric	 	 	
+    -->
+    <xs:element name="Map">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element minOccurs="0" ref="Description"/>
+                <xs:element ref="From"/>
+                <xs:element ref="To"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <!-- Documentation for table validity. -->
+    <xs:element name="Validity">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="Range"/>
+                <xs:element minOccurs="0" ref="Format"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
+<!-- End Complex Types -->

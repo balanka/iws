@@ -1,0 +1,256 @@
+<DataSet>
+  <Version>string</Version>
+  <!--Optional:-->
+  <DataSupplier>
+    <Name>string</Name>
+    <Location>string</Location>
+    <Comment>string</Comment>
+  </DataSupplier>
+  <!--Zero or more repetitions:-->
+  <Command>string</Command>
+  <!--1 or more repetitions:-->
+  <Media>
+    <Name>string</Name>
+    <!--Zero or more repetitions:-->
+    <Command>string</Command>
+    <!--1 or more repetitions:-->
+    <Table>
+      <URL>string</URL>
+      <!--Optional:-->
+      <Name>string</Name>
+      <!--Optional:-->
+      <Description>string</Description>
+      <!--Optional:-->
+      <Validity>
+        <Range>
+          <From>string</From>
+          <!--You have a CHOICE of the next 2 items at this level-->
+          <To>string</To>
+          <Length>string</Length>
+        </Range>
+        <!--Optional:-->
+        <Format>string</Format>
+      </Validity>
+      <!--You have a CHOICE of the next 6 items at this level-->
+      <ANSI/>
+      <Macintosh/>
+      <OEM/>
+      <UTF16/>
+      <UTF7/>
+      <UTF8/>
+      <DecimalSymbol>string</DecimalSymbol>
+      <DigitGroupingSymbol>string</DigitGroupingSymbol>
+      <!--Optional:-->
+      <SkipNumBytes>string</SkipNumBytes>
+      <!--Optional:-->
+      <Range>
+        <From>string</From>
+        <!--You have a CHOICE of the next 2 items at this level-->
+        <To>string</To>
+        <Length>string</Length>
+      </Range>
+      <!--Optional:-->
+      <Epoch>string</Epoch>
+      <!--You have a CHOICE of the next 2 items at this level-->
+      <VariableLength>
+        <!--Optional:-->
+        <ColumnDelimiter>string</ColumnDelimiter>
+        <!--Optional:-->
+        <RecordDelimiter>string</RecordDelimiter>
+        <!--Optional:-->
+        <TextEncapsulator>string</TextEncapsulator>
+        <!--You have a CHOICE of the next 2 items at this level-->
+        <!--1 or more repetitions:-->
+        <VariablePrimaryKey>
+          <Name>string</Name>
+          <!--Optional:-->
+          <Description>string</Description>
+          <!--You have a CHOICE of the next 3 items at this level-->
+          <Numeric>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <ImpliedAccuracy>string</ImpliedAccuracy>
+            <Accuracy>string</Accuracy>
+          </Numeric>
+          <AlphaNumeric/>
+          <!--Optional:-->
+          <MaxLength>string</MaxLength>
+          <Date>
+            <!--Optional:-->
+            <Format>string</Format>
+          </Date>
+          <!--Zero or more repetitions:-->
+          <Map>
+            <!--Optional:-->
+            <Description>string</Description>
+            <From>string</From>
+            <To>string</To>
+          </Map>
+        </VariablePrimaryKey>
+        <!--Zero or more repetitions:-->
+        <VariableColumn>
+          <Name>string</Name>
+          <!--Optional:-->
+          <Description>string</Description>
+          <!--You have a CHOICE of the next 3 items at this level-->
+          <Numeric>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <ImpliedAccuracy>string</ImpliedAccuracy>
+            <Accuracy>string</Accuracy>
+          </Numeric>
+          <AlphaNumeric/>
+          <!--Optional:-->
+          <MaxLength>string</MaxLength>
+          <Date>
+            <!--Optional:-->
+            <Format>string</Format>
+          </Date>
+          <!--Zero or more repetitions:-->
+          <Map>
+            <!--Optional:-->
+            <Description>string</Description>
+            <From>string</From>
+            <To>string</To>
+          </Map>
+        </VariableColumn>
+        <!--1 or more repetitions:-->
+        <VariableColumn>
+          <Name>string</Name>
+          <!--Optional:-->
+          <Description>string</Description>
+          <!--You have a CHOICE of the next 3 items at this level-->
+          <Numeric>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <ImpliedAccuracy>string</ImpliedAccuracy>
+            <Accuracy>string</Accuracy>
+          </Numeric>
+          <AlphaNumeric/>
+          <!--Optional:-->
+          <MaxLength>string</MaxLength>
+          <Date>
+            <!--Optional:-->
+            <Format>string</Format>
+          </Date>
+          <!--Zero or more repetitions:-->
+          <Map>
+            <!--Optional:-->
+            <Description>string</Description>
+            <From>string</From>
+            <To>string</To>
+          </Map>
+        </VariableColumn>
+        <!--Zero or more repetitions:-->
+        <ForeignKey>
+          <!--1 or more repetitions:-->
+          <Name>string</Name>
+          <References>string</References>
+        </ForeignKey>
+      </VariableLength>
+      <FixedLength>
+        <!--You have a CHOICE of the next 2 items at this level-->
+        <Length>string</Length>
+        <RecordDelimiter>string</RecordDelimiter>
+        <!--You have a CHOICE of the next 2 items at this level-->
+        <!--1 or more repetitions:-->
+        <FixedPrimaryKey>
+          <Name>string</Name>
+          <!--Optional:-->
+          <Description>string</Description>
+          <!--You have a CHOICE of the next 3 items at this level-->
+          <Numeric>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <ImpliedAccuracy>string</ImpliedAccuracy>
+            <Accuracy>string</Accuracy>
+          </Numeric>
+          <AlphaNumeric/>
+          <Date>
+            <!--Optional:-->
+            <Format>string</Format>
+          </Date>
+          <!--Zero or more repetitions:-->
+          <Map>
+            <!--Optional:-->
+            <Description>string</Description>
+            <From>string</From>
+            <To>string</To>
+          </Map>
+          <FixedRange>
+            <From>string</From>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <To>string</To>
+            <Length>string</Length>
+          </FixedRange>
+        </FixedPrimaryKey>
+        <!--Zero or more repetitions:-->
+        <FixedColumn>
+          <Name>string</Name>
+          <!--Optional:-->
+          <Description>string</Description>
+          <!--You have a CHOICE of the next 3 items at this level-->
+          <Numeric>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <ImpliedAccuracy>string</ImpliedAccuracy>
+            <Accuracy>string</Accuracy>
+          </Numeric>
+          <AlphaNumeric/>
+          <Date>
+            <!--Optional:-->
+            <Format>string</Format>
+          </Date>
+          <!--Zero or more repetitions:-->
+          <Map>
+            <!--Optional:-->
+            <Description>string</Description>
+            <From>string</From>
+            <To>string</To>
+          </Map>
+          <FixedRange>
+            <From>string</From>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <To>string</To>
+            <Length>string</Length>
+          </FixedRange>
+        </FixedColumn>
+        <!--1 or more repetitions:-->
+        <FixedColumn>
+          <Name>string</Name>
+          <!--Optional:-->
+          <Description>string</Description>
+          <!--You have a CHOICE of the next 3 items at this level-->
+          <Numeric>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <ImpliedAccuracy>string</ImpliedAccuracy>
+            <Accuracy>string</Accuracy>
+          </Numeric>
+          <AlphaNumeric/>
+          <Date>
+            <!--Optional:-->
+            <Format>string</Format>
+          </Date>
+          <!--Zero or more repetitions:-->
+          <Map>
+            <!--Optional:-->
+            <Description>string</Description>
+            <From>string</From>
+            <To>string</To>
+          </Map>
+          <FixedRange>
+            <From>string</From>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <To>string</To>
+            <Length>string</Length>
+          </FixedRange>
+        </FixedColumn>
+        <!--Zero or more repetitions:-->
+        <ForeignKey>
+          <!--1 or more repetitions:-->
+          <Name>string</Name>
+          <References>string</References>
+        </ForeignKey>
+      </FixedLength>
+    </Table>
+    <!--Zero or more repetitions:-->
+    <Command>string</Command>
+  </Media>
+  <!--Zero or more repetitions:-->
+  <Command>string</Command>
+</DataSet>
