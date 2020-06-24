@@ -1,19 +1,12 @@
 package com.kabasoft.iws.domain
-
 import java.time.Instant
-import java.time.temporal.ChronoField
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Month
-import java.time.ZoneOffset
 import java.time.ZoneId
-
 import cats._
 import cats.implicits._
 import com.kabasoft.iws.domain.FinancialsTransaction.FinancialsTransaction_Type2
 import com.kabasoft.iws.domain.Account.{Balance_Type}
 import com.kabasoft.iws.domain.common._
-
 import scala.annotation.tailrec
 
 object common {
@@ -130,8 +123,6 @@ final case class Account(
 
   def balance = if (isDebit) dbalance else cbalance
 
-  def incomeStmt(accId: String) = account.isEmpty
-
   def add(acc: Account): Account =
     copy(subAccounts = subAccounts + acc);
 
@@ -201,7 +192,7 @@ object Account {
   def removeSubAccounts(account: Account): Account =
     account.subAccounts.toList match {
       case Nil => account
-      case s :: rest =>
+      case rest @ _ =>
         val sub = account.subAccounts.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0))
         if (account.subAccounts.size > 0)
           account.copy(subAccounts = sub.map(removeSubAccounts))
@@ -211,8 +202,6 @@ object Account {
     accMap.get(account.id) match {
       case Some(acc) => {
         val x = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap))
-        println("FOUND XXXX>>>>  " + acc.size, x)
-        //account.copy(subAccounts = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap)))
         account.copy(subAccounts = x)
       }
       case None =>
@@ -245,7 +234,7 @@ object Account {
           idebit = getInitialDebitCredit(account.id, pacs, true),
           icredit = getInitialDebitCredit(account.id, pacs, false)
         )
-      case s :: rest =>
+      case rest @ _ =>
         val sub = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
         val subALl = sub.toList.combineAll
         account
@@ -258,14 +247,14 @@ object Account {
   def wrapAsData(account: Account): Data =
     account.subAccounts.toList match {
       case Nil => Data(BaseData(account))
-      case s :: rest =>
+      case rest @ _ =>
         Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
     }
 
   def consolidateData(acc: Account): Data =
     List(acc).map(wrapAsData) match {
       case Nil => Data(BaseData(Account.dummy))
-      case account :: rest => account
+      case account :: _ => account
     }
 
   def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account =

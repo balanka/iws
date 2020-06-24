@@ -1,8 +1,8 @@
 package com.toracoya.petstore.pet
 
-import org.scalatest.WordSpec
+//import org.scalatest.WordSpec
 
-class PetsTest extends WordSpec {
+class PetsTest /*extends WordSpec */ {
   /*
   "#count" when {
     "empty" should {

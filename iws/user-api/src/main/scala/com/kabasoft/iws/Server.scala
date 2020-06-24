@@ -22,7 +22,6 @@ import com.kabasoft.iws.repository.doobie.{
 import cats.effect._
 import cats.implicits._
 import io.circe.config.parser
-import io.circe.config.parser._
 import org.http4s.implicits._
 import org.http4s.server.{Router, Server => H4Server}
 import org.http4s.server.blaze.BlazeServerBuilder

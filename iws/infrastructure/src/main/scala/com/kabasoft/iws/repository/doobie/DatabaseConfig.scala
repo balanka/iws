@@ -1,7 +1,6 @@
 package com.kabasoft.iws.repository.doobie
 
-import cats.syntax.functor._
-import cats.effect.{Async, Blocker, ContextShift, Resource, Sync}
+import cats.effect.{Async, ContextShift, Resource}
 import doobie.hikari.HikariTransactor
 import io.circe.Decoder
 import io.circe.generic.semiauto._

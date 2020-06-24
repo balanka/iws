@@ -16,7 +16,7 @@ object Pagination {
 
   import QueryParamDecoder._
 
-  object PageMatcher extends OptionalQueryParamDecoderMatcher[Int]("page")
+  object OffsetMatcher extends OptionalQueryParamDecoderMatcher[Int]("offset")
   object PageSizeMatcher extends OptionalQueryParamDecoderMatcher[Int]("pageSize")
 
   val DefaultPage: Int = 0

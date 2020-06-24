@@ -39,15 +39,22 @@ val ScalaTestVersion = "3.2.0"
 val ScalaTestPlusVersion = "3.2.0.0"
 val FlywayVersion = "6.4.4"
 val TsecVersion = "0.2.1"
+val H2Version = "1.4.200"
 
 
 lazy val commonDependencies = Seq(
   "org.typelevel" %% "cats-core"   % catsVersion,
  // "org.typelevel" %% "cats-effect" % catsEffectVersion,
   "ch.qos.logback" %  "logback-classic" % logbackVersion,
-  "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
-  //"org.mockito" %% "mockito-scala" % mockitoScalaVersion % Test,
-  //"org.mockito" %% "mockito-scala-scalatest" % mockitoScalaVersion % Test
+  "com.h2database" % "h2" % H2Version,
+  "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+"io.github.jmcardon" %% "tsec-common" % TsecVersion,
+"io.github.jmcardon" %% "tsec-password" % TsecVersion,
+"io.github.jmcardon" %% "tsec-mac" % TsecVersion,
+"io.github.jmcardon" %% "tsec-signatures" % TsecVersion,
+"io.github.jmcardon" %% "tsec-jwt-mac" % TsecVersion,
+"io.github.jmcardon" %% "tsec-jwt-sig" % TsecVersion,
+"io.github.jmcardon" %% "tsec-http4s" % TsecVersion,
 )
 
 lazy val databaseDependencies = Seq(
@@ -92,6 +99,10 @@ lazy val infrastructure = project
   .settings(moduleName := "infrastructure", name := "Infrastructure")
   .settings(libraryDependencies := commonDependencies ++ databaseDependencies ++ circeDependencies)
   .dependsOn(domain, application)
+   addCompilerPlugin(
+   ("org.typelevel" %% "kind-projector" % KindProjectorVersion).cross(CrossVersion.full),
+  )
+enablePlugins(ScalafmtPlugin, JavaAppPackaging, GhpagesPlugin, MicrositesPlugin, TutPlugin)
 
 lazy val userAPI = project
   .in(file("user-api"))
@@ -112,3 +123,5 @@ lazy val userAPI = project
     cancelable in Global := true
   ))
   .dependsOn(domain, application, infrastructure)
+addCompilerPlugin("org.typelevel" % "kind-projector" % KindProjectorVersion cross CrossVersion.full)
+

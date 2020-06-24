@@ -1,27 +1,11 @@
 package com.kabasoft.iws.repository.doobie
 
-import java.time.Instant
-import java.util.Date
-
-import cats._
-import cats.data._
-import cats.Monad
-import cats.effect.{IO, Sync}
-import cats.implicits._
-import cats.effect.implicits._
-import doobie._
 import doobie.implicits._
-import doobie.util.ExecutionContexts
 import doobie.util.query.Query0
-import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
-import com.kabasoft.iws._
 import com.kabasoft.iws.domain.Account.Account_Type
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
-import com.kabasoft.iws.domain.FinancialsTransactionDetails.FinancialsTransactionDetails_Type
-import com.kabasoft.iws.repository.doobie.SQL.FinancialsTransactionDetails
-import com.kabasoft.iws.repository.doobie.SQLPagination._
 
 trait Repository[-A, B] {
   def create(item: A): Update0
@@ -251,7 +235,7 @@ private object SQL {
       sql"""DELETE FROM account WHERE ID = $id""".update
 
     def update(model: Account): Update0 = {
-      println("model", model)
+      println("model: " + model)
       sql"""Update account set  NAME =${model.name}, DESCRIPTION=${model.description}
         , posting_date =${model.postingdate}, modified_date =${model.changedate}, enter_date = ${model.enterdate}
         , company =${model.company}, account =${model.account}, isDebit =${model.isDebit}, balancesheet =${model.balancesheet}
@@ -262,7 +246,7 @@ private object SQL {
 
   object PeriodicAccountBalance extends Repository[PeriodicAccountBalance, PeriodicAccountBalance] {
     def create(item: PeriodicAccountBalance): Update0 = {
-      println("item>>>>", item)
+      println("item>>>>" + item)
       sql"""INSERT INTO periodic_account_balance (ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid) VALUES (
               ${item.id}, ${item.account}, ${item.period}, ${item.idebit}, ${item.icredit}, ${item.debit}, ${item.credit}
              , ${item.company}, ${item.currency}, ${item.modelid} )""".update
@@ -435,7 +419,7 @@ private object SQL {
      FROM details_compta ORDER BY id  ASC
   """.query
 
-    def delete(ids: List[String]): List[Update0] = { println("DELETING", ids); ids.map(delete) }
+    def delete(ids: List[String]): List[Update0] = ids.map(delete)
 
     def delete(idx: String): Update0 = sql"""DELETE FROM details_compta WHERE ID = ${idx.toLong}""".update
 
@@ -444,9 +428,7 @@ private object SQL {
      AMOUNT=${model.amount}, DUEDATE=${model.duedate}, TEXT=${model.text},  CURRENCY=${model.currency}, COMPANY=${model.company}
      where id =${model.lid}"""
 
-    override def update(models: List[FinancialsTransactionDetails]): List[Update0] = {
-      println("UPDATING", models.map(_.lid)); models.map(m => { println("UPDATING", update(m).sql); update(m) })
-    }
+    override def update(models: List[FinancialsTransactionDetails]): List[Update0] = models.map(update)
 
     def update(model: FinancialsTransactionDetails): Update0 = sql"""Update details_compta
      set ACCOUNT=${model.account}, SIDE=${model.side}, OACCOUNT=${model.oaccount},
@@ -473,12 +455,10 @@ private object SQL {
       FROM master_compta A LEFT  JOIN  details_compta B ON  B.transid = A.id
      WHERE  A.id = $id ORDER BY  A.ID """.query
 
-      // .query[FinancialsTransaction_Type2]
-      // .map(FinancialsTransaction.apply)
     }
 
-    def findSome(model: String*): Query0[FinancialsTransaction_Type2] = {
-      val id = model(0).toLong
+    def findSome(model: String*): Query0[FinancialsTransaction_Type2] =
+      // val id = model(0).toLong
       sql"""SELECT A.ID, A.OID, A.COSTCENTER, A.ACCOUNT, A.TRANSDATE, A.POSTINGDATE, A.ENTERDATE, A.PERIOD, A.POSTED
         , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, COALESCE (B.ID, -1) as ID
       , COALESCE(B.account, '-1') as account, COALESCE (B.side,true) as side
@@ -486,7 +466,6 @@ private object SQL {
      , COALESCE(B.duedate,CURRENT_TIMESTAMP) AS duedate, COALESCE (B.text,'TEXT') AS text
      , COALESCE (B.currency, 'EUR') as currency
         ORDER BY A.ID ASC """.query
-    }
     /*
     def findByModelId2(modelid: Int): Query0[FinancialsTransaction] = sql"""
     SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
@@ -520,9 +499,9 @@ private object SQL {
     def delete(id: String): Update0 = sql"""DELETE FROM master_compta WHERE ID = $id.toLong """.update
 
     override def update(models: List[FinancialsTransaction]): List[Update0] = {
-      println("UPDATING", models.map(_.id));
+      println("UPDATING" + models.map(_.id));
       models.map(m => {
-        println("UPDATING", m);
+        println("UPDATING" + m);
         FinancialsTransactionDetails.update(m.lines);
         update(m)
       })
@@ -560,9 +539,9 @@ private object SQL {
       val acc: String = model(0)
       val fromPeriod: Int = model(1).toInt
       val toPeriod: Int = model(2).toInt
-      println("acc", acc)
-      println("fromPeriod", fromPeriod)
-      println("toPeriod", toPeriod)
+      println("acc: " + acc)
+      println("fromPeriod: " + fromPeriod)
+      println("toPeriod: " + toPeriod)
       sql"""SELECT ID, TRANSID, OID, ACCOUNT, OACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, AMOUNT,IDEBIT, DEBIT
         , ICREDIT, CREDIT, CURRENCY, SIDE, TEXT, MONTH, YEAR, COMPANY, JOURNAL_TYPE, FILE_CONTENT, MODELID
         FROM journal WHERE ACCOUNT = ${acc} AND PERIOD BETWEEN ${fromPeriod} AND ${toPeriod}  ORDER BY  id ASC """.query
@@ -613,7 +592,7 @@ private object SQL {
 
     def findSome(model: String*): Query0[BankStatement] = {
       val posted: String = model(0)
-      val period: Boolean = model(1).toBoolean
+      //val period: Boolean = model(1).toBoolean
       sql"""
          SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE, POSTINGTEXT, PURPOSE, BENEFICIARY
          , ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, modelid

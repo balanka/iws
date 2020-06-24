@@ -1,6 +1,4 @@
 package com.kabasoft.iws.service
-import scala.language.higherKinds
-
 trait Service[F[_], A] {
   def create(item: A): F[Int]
   def delete(item: String): F[Int]

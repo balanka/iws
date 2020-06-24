@@ -1,28 +1,21 @@
 package com.kabasoft.iws.repository.doobie
 
 import java.time.Instant
-import java.time.temporal.ChronoField
-
 import cats._
-import cats.data._
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.implicits._
 import doobie._
 import doobie.implicits._
-import doobie.util.ExecutionContexts
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
 import com.kabasoft.iws.domain.{Journal => DJournal, PeriodicAccountBalance => DPAC}
-import com.kabasoft.iws.repository.doobie.SQL.{FinancialsTransaction, FinancialsTransactionDetails}
 import com.kabasoft.iws.service.Service
 import com.kabasoft.iws.repository.doobie.SQLPagination._
 import com.kabasoft.iws.domain.PeriodicAccountBalance.pacMonoid
 import com.kabasoft.iws.repository.doobie.Common.{getX, getXX}
 
-import scala.language.higherKinds
 object Common {
 
   def queryX[A](func: A => Query0[DPAC], query: A): ConnectionIO[Option[DPAC]] =
@@ -45,9 +38,8 @@ object Common {
 case class BankService[F[_]: Sync](transactor: Transactor[F] /*, repository1: Repository[Bank, Bank]*/ )
     extends Service[F, Bank] {
 
-  def create(item: Bank): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Bank.create(item).run.transact(transactor)
-  }
+  def create(item: Bank): F[Int] = SQL.Bank.create(item).run.transact(transactor)
+
   def delete(id: String): F[Int] = SQL.Bank.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Bank]] =
     paginate(until - from, from)(SQL.Bank.list).to[List].transact(transactor)
@@ -59,13 +51,8 @@ case class BankService[F[_]: Sync](transactor: Transactor[F] /*, repository1: Re
   def update(model: Bank): F[List[Int]] = getXX(SQL.Bank.update, List(model)).sequence.transact(transactor)
 
 }
-case class BankStatementService[F[_]: Sync](
-  transactor: Transactor[F]
-  //repository: Repository[BankStatement, BankStatement]
-) extends Service[F, BankStatement] {
-  def create(item: BankStatement): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.BankStatement.create(item).run.transact(transactor)
-  }
+case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, BankStatement] {
+  def create(item: BankStatement): F[Int] = SQL.BankStatement.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.BankStatement.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[BankStatement]] =
     paginate(until - from, from)(SQL.BankStatement.list).to[List].transact(transactor)
@@ -78,9 +65,7 @@ case class BankStatementService[F[_]: Sync](
     getXX(SQL.BankStatement.update, List(models)).sequence.transact(transactor)
 }
 case class MasterfileService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Masterfile] {
-  def create(item: Masterfile): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Masterfile.create(item).run.transact(transactor)
-  }
+  def create(item: Masterfile): F[Int] = SQL.Masterfile.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Masterfile.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Masterfile]] =
     paginate(until - from, from)(SQL.Masterfile.list)
@@ -99,9 +84,7 @@ case class MasterfileService[F[_]: Sync](transactor: Transactor[F]) extends Serv
     getXX(SQL.Masterfile.update, List(model)).sequence.transact(transactor)
 }
 case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, CostCenter] {
-  def create(item: CostCenter): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.CostCenter.create(item).run.transact(transactor)
-  }
+  def create(item: CostCenter): F[Int] = SQL.CostCenter.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.CostCenter.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[CostCenter]] =
     paginate(until - from, from)(SQL.CostCenter.list)
@@ -123,12 +106,7 @@ case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Serv
 case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: String, inStmtAccId: String)
     extends Service[F, Account] {
 
-  //import com.kabasoft.iws.domain.common.parentAccountMonoid
-  def create(item: Account): F[Int] = {
-    println("item<<<<<<<<<<<", item);
-    SQL.Account.create(item).run.transact(transactor)
-  }
-
+  def create(item: Account): F[Int] = SQL.Account.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Account.delete(id).run.transact(transactor)
 
   def list(from: Int, until: Int): F[List[Account]] =
@@ -181,7 +159,7 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
       list = Account.flattenTailRec(Set(Account.withChildren(inStmtAccId, allAccounts)))
       initpacList = (pacs ++ initial)
         .groupBy(_.account)
-        .map({ case (k, v) => v.combineAll(pacMonoid) })
+        .map({ case (_, v) => v.combineAll(pacMonoid) })
         .toList
 
       filteredList = initpacList.filterNot(x => {
@@ -210,16 +188,14 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
                   .copy(credit = 0)
                   .copy(idebit = 0)
                   .copy(debit = 0)
-            case None => { println("NO ACCOUNT  FOUND for PAC", pac); pac }
+            case None => pac
           }
         })
       pac_created <- pacList.traverse(SQL.PeriodicAccountBalance.create(_).run)
     } yield pac_created).transact(transactor)
 }
 case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Article] {
-  def create(item: Article): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Article.create(item).run.transact(transactor)
-  }
+  def create(item: Article): F[Int] = SQL.Article.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Article.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Article]] =
     paginate(until - from, from)(SQL.Article.list).to[List].transact(transactor)
@@ -233,9 +209,7 @@ case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service
 }
 
 case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Customer] {
-  def create(item: Customer): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Customer.create(item).run.transact(transactor)
-  }
+  def create(item: Customer): F[Int] = SQL.Customer.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Customer.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Customer]] =
     paginate(until - from, from)(SQL.Customer.list).to[List].transact(transactor)
@@ -248,9 +222,7 @@ case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Servic
   def update(model: Customer): F[List[Int]] = getXX(SQL.Customer.update, List(model)).sequence.transact(transactor)
 }
 case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Supplier] {
-  def create(item: Supplier): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Supplier.create(item).run.transact(transactor)
-  }
+  def create(item: Supplier): F[Int] = SQL.Supplier.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Supplier.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Supplier]] =
     paginate(until - from, from)(SQL.Supplier.list).to[List].transact(transactor)
@@ -267,9 +239,7 @@ case class PeriodicAccountBalanceService[F[_]: Sync](
   transactor: Transactor[F]
 ) extends Service[F, PeriodicAccountBalance] {
 
-  def create(item: PeriodicAccountBalance): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.PeriodicAccountBalance.create(item).run.transact(transactor)
-  }
+  def create(item: PeriodicAccountBalance): F[Int] = SQL.PeriodicAccountBalance.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.PeriodicAccountBalance.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[PeriodicAccountBalance]] =
     paginate(until - from, from)(SQL.PeriodicAccountBalance.list).to[List].transact(transactor)
@@ -285,9 +255,7 @@ case class PeriodicAccountBalanceService[F[_]: Sync](
 }
 
 case class RoutesService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Routes] {
-  def create(item: Routes): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Routes.create(item).run.transact(transactor)
-  }
+  def create(item: Routes): F[Int] = SQL.Routes.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Routes.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Routes]] =
     paginate(until - from, from)(SQL.Routes.list).to[List].transact(transactor)
@@ -300,9 +268,7 @@ case class RoutesService[F[_]: Sync](transactor: Transactor[F]) extends Service[
   def update(model: Routes): F[List[Int]] = getXX(SQL.Routes.update, List(model)).sequence.transact(transactor)
 }
 case class VatService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Vat] {
-  def create(item: Vat): F[Int] = {
-    println("item<<<<<<<<<<<", item); SQL.Vat.create(item).run.transact(transactor)
-  }
+  def create(item: Vat): F[Int] = SQL.Vat.create(item).run.transact(transactor)
   def delete(id: String): F[Int] = SQL.Vat.delete(id).run.transact(transactor)
   def list(from: Int, until: Int): F[List[Vat]] =
     paginate(until - from, from)(SQL.Vat.list).to[List].transact(transactor)
@@ -340,15 +306,15 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
 
     val splitted = model.lines.partition(insertPredicate(_))
     val splitted2 = splitted._2.partition(deletePredicate(_))
-    println("model", model)
-    println("splitted1", splitted)
-    println("splitted2", splitted2)
+    println("model: " + model)
+    println("splitted1: " + splitted)
+    println("splitted2: " + splitted2)
     val newLines = splitted._1
     val deletedLineIds = splitted2._1.map(line => line.id)
     val oldLines = splitted2._2
-    println("INSERT->" + newLines.size, newLines);
-    println("DELETE->" + deletedLineIds.size, deletedLineIds);
-    println("OLD->" + oldLines.size, oldLines);
+    println("INSERT->" + newLines);
+    println("DELETE->" + deletedLineIds);
+    println("OLD->" + oldLines);
     val result: List[ConnectionIO[Int]] =
       getXX(SQL.FinancialsTransactionDetails.update, oldLines) ++
         getXX(SQL.FinancialsTransactionDetails.delete, deletedLineIds) ++
@@ -415,12 +381,12 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
 
   private[this] def getNewPac(pacList: List[Option[DPAC]], model: FinancialsTransaction): List[DPAC] = {
     val newRecords = getAndDebitCreditNewPacs(pacList, model.getPeriod, model.lines)
-    println("newRecords", newRecords)
+    println("newRecords: " + newRecords)
     val grouped: Iterable[DPAC] = newRecords
       .groupBy(_.id)
       .map({ case (_, v) => v.combineAll })
     val result = grouped.toList
-    println("result", result)
+    println("result: " + result)
     result
   }
 
@@ -432,7 +398,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       .map({ case (_, v) => v.combineAll })
       .toSet
       .toList
-    println("result", result)
+    println("result: " + result)
     result
   }
 
