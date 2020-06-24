@@ -64,7 +64,7 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     crypt: PasswordHasher[F, A]
   ): HttpRoutes[F] =
     HttpRoutes.of[F] {
-      case req @ POST -> Root =>
+      case req @ POST -> Root / "users" =>
         val action = for {
           signup <- req.as[SignupRequest]
           hash <- crypt.hashpw(signup.password)
@@ -80,7 +80,7 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     }
 
   private def updateEndpoint(userService: UserService[F]): AuthEndpoint[F, Auth] = {
-    case req @ PUT -> Root / name asAuthed _ =>
+    case req @ PUT -> Root / "users" / name asAuthed _ =>
       val action = for {
         user <- req.request.as[User]
         updated = user.copy(userName = name)
@@ -94,7 +94,7 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def listEndpoint(userService: UserService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root :? PageSizeMatcher(pageSize) :? OffsetMatcher(offset) asAuthed _ =>
+    case GET -> Root / "users" :? PageSizeMatcher(pageSize) :? OffsetMatcher(offset) asAuthed _ =>
       for {
         retrieved <- userService.list(pageSize.getOrElse(10), offset.getOrElse(0))
         resp <- Ok(retrieved.asJson)
@@ -102,7 +102,7 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def searchByNameEndpoint(userService: UserService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / userName asAuthed _ =>
+    case GET -> Root / "users" / userName asAuthed _ =>
       userService.getUserByName(userName).value.flatMap {
         case Right(found) => Ok(found.asJson)
         case Left(UserNotFoundError) => NotFound("The user was not found")
@@ -110,7 +110,7 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def deleteUserEndpoint(userService: UserService[F]): AuthEndpoint[F, Auth] = {
-    case DELETE -> Root / userName asAuthed _ =>
+    case DELETE -> Root / "users" / userName asAuthed _ =>
       for {
         _ <- userService.deleteByUserName(userName)
         resp <- Ok()

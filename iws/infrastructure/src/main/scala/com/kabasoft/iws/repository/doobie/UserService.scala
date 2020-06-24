@@ -15,13 +15,10 @@ class UserService[F[_]](userRepo: UserRepository[F], validation: UserValidation[
   def getUser(userId: Long)(implicit F: Functor[F]): EitherT[F, UserNotFoundError.type, User] =
     userRepo.get(userId).toRight(UserNotFoundError)
 
-  def getUserByName(
-    userName: String
-  )(implicit F: Functor[F]): EitherT[F, UserNotFoundError.type, User] =
+  def getUserByName(userName: String)(implicit F: Functor[F]): EitherT[F, UserNotFoundError.type, User] =
     userRepo.findByUserName(userName).toRight(UserNotFoundError)
 
-  def deleteUser(userId: Long)(implicit F: Functor[F]): F[Unit] =
-    userRepo.delete(userId).value.void
+  def deleteUser(userId: Long)(implicit F: Functor[F]): F[Unit] = userRepo.delete(userId).value.void
 
   def deleteByUserName(userName: String)(implicit F: Functor[F]): F[Unit] =
     userRepo.deleteByUserName(userName).value.void
@@ -32,14 +29,10 @@ class UserService[F[_]](userRepo: UserRepository[F], validation: UserValidation[
       saved <- userRepo.update(user).toRight(UserNotFoundError)
     } yield saved
 
-  def list(pageSize: Int, offset: Int): F[List[User]] =
-    userRepo.list(pageSize, offset)
+  def list(pageSize: Int, offset: Int): F[List[User]] = userRepo.list(pageSize, offset)
 }
 
 object UserService {
-  def apply[F[_]](
-    repository: UserRepository[F],
-    validation: UserValidation[F]
-  ): UserService[F] =
+  def apply[F[_]](repository: UserRepository[F], validation: UserValidation[F]): UserService[F] =
     new UserService[F](repository, validation)
 }
