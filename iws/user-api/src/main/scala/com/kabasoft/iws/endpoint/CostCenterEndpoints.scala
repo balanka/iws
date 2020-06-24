@@ -1,23 +1,16 @@
 package com.kabasoft.iws.endpoint
 
-import java.util.Date
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect.Effect
 import cats.implicits._
-import com.kabasoft.iws.error.json.ErrorsJson
-import com.kabasoft.iws.pagination.PaginationValidator
-import com.kabasoft.iws.pagination.Pagination.PageSizeMatcher
-import com.kabasoft.iws.pagination.Pagination._
-import com.kabasoft.iws.repository.doobie.CostCenterService
 import com.kabasoft.iws.domain.CostCenter
-import io.circe.{Decoder, Encoder}
-import io.circe.{Decoder, Encoder}
+import com.kabasoft.iws.error.json.ErrorsJson
+import com.kabasoft.iws.pagination.Pagination.{PageSizeMatcher, _}
+import com.kabasoft.iws.pagination.PaginationValidator
+import com.kabasoft.iws.repository.doobie.CostCenterService
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.HttpRoutes
-import org.http4s.circe._
-import cats.implicits._
-import org.http4s._
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 

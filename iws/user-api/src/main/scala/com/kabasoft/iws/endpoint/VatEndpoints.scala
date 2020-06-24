@@ -1,25 +1,22 @@
 package com.kabasoft.iws.endpoint
 
+import java.time.Instant
+
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect.Effect
 import cats.implicits._
+import com.kabasoft.iws.domain.Vat
 import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination.{PageSizeMatcher, _}
 import com.kabasoft.iws.pagination.PaginationValidator
-import com.kabasoft.iws.domain.Vat
 import com.kabasoft.iws.repository.doobie.VatService
-import com.kabasoft.iws.pagination.Pagination._
 import io.circe.generic.auto._
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder}
 import org.http4s.HttpRoutes
 import org.http4s.circe._
-
-import io.circe.syntax._
-import org.http4s._
-import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
-import io.circe.{Decoder, Encoder}
-import java.time.Instant
+
 import scala.util.Try
 
 class VatEndpoints[F[_]: Effect] extends Http4sDsl[F] {
