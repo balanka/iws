@@ -50,7 +50,7 @@ class AccountEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           updated <- service.update(account)
           response <- Ok(updated.asJson)
         } yield response
-      case GET -> Root / "acc" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "acc" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -92,7 +92,7 @@ class AccountEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           case Some(found) => Ok(found.asJson)
           case None => NotFound("")
         }
-      case GET -> Root / "accmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "accmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
         PaginationValidator.validate(page, pageSize) match {

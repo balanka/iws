@@ -43,7 +43,7 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           updated <- service.postAll(transaction)
           response <- Ok(updated.asJson)
         } yield response
-      case GET -> Root / "ftr" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "ftr" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
         PaginationValidator.validate(page, pageSize) match {
@@ -69,7 +69,7 @@ class FinancialsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           case Some(found) => Ok(found.asJson)
           case None => NotFound("")
         }
-      case GET -> Root / "ftrmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "ftrmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
         PaginationValidator.validate(page, pageSize) match {

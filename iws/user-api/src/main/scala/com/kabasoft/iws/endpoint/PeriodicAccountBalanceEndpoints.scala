@@ -37,7 +37,7 @@ class PeriodicAccountBalanceEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           response <- Ok(updated.asJson) //.putHeaders(Header("X-Auth-Token", "value"))
         } yield response
 
-      case GET -> Root / "pac" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "pac" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -74,7 +74,7 @@ class PeriodicAccountBalanceEndpoints[F[_]: Effect] extends Http4sDsl[F] {
             BadRequest(ErrorsJson.from(errors).asJson)
         }
       }
-      case GET -> Root / "pacmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "pacmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
         PaginationValidator.validate(page, pageSize) match {

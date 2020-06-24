@@ -40,7 +40,7 @@ class ArticleEndpoints[F[_]: Effect] extends Http4sDsl[F] {
         service.delete(id) *>
           Ok()
 
-      case GET -> Root / "art" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "art" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -67,7 +67,7 @@ class ArticleEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           case None => NotFound("")
         }
 
-      case GET -> Root / "artmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "artmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
         PaginationValidator.validate(page, pageSize) match {

@@ -47,7 +47,7 @@ class CustomerEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           response <- Ok(updated.asJson) //.putHeaders(Header("X-Auth-Token", "value"))
         } yield response
 
-      case GET -> Root / "cust" :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "cust" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -74,7 +74,7 @@ class CustomerEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           case Some(found) => Ok(found.asJson)
           case None => NotFound("")
         }
-      case GET -> Root / "custmd" / IntVar(modelid) :? PageMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
+      case GET -> Root / "custmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
         val page = maybePage.getOrElse(DefaultPage)
         val pageSize = maybePageSize.getOrElse(DefaultPageSize)
         PaginationValidator.validate(page, pageSize) match {
