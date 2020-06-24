@@ -38,8 +38,8 @@ class UserService[F[_]](userRepo: UserRepository[F], validation: UserValidation[
 
 object UserService {
   def apply[F[_]](
-                   repository: UserRepository[F],
-                   validation: UserValidation[F]
+    repository: UserRepository[F],
+    validation: UserValidation[F]
   ): UserService[F] =
     new UserService[F](repository, validation)
 }
