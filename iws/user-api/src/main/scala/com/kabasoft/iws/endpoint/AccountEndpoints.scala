@@ -9,12 +9,8 @@ import com.kabasoft.iws.domain.Account
 import com.kabasoft.iws.repository.doobie.AccountService
 import com.kabasoft.iws.pagination.Pagination._
 import io.circe.generic.auto._
-import io.circe.syntax._
 import org.http4s.HttpRoutes
-import org.http4s.circe._
-
 import io.circe.syntax._
-import org.http4s._
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import io.circe.{Decoder, Encoder}
