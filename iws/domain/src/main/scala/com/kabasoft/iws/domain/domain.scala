@@ -136,7 +136,7 @@ final case class Account(
 
   def getChildren(): Set[Account] = subAccounts.toList match {
     case Nil => Set(copy(id = id))
-    case x :: xs => Set(x) ++ xs.flatMap(_.getChildren)
+    case x :: xs => Set(x) ++ xs.flatMap(_.getChildren())
   }
 }
 
