@@ -1,0 +1,11 @@
+{
+    "userName": "jdegoes01",
+    "firstName": "John_",
+    "lastName": "dgoes",
+    "email": "whatMyGrandmaName@gmail.com",
+    "password": "wuduwali.",
+    "phone": "11-4711-0123",
+    "id":1,
+    "role": "Admin"
+
+}
