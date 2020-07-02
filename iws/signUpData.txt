@@ -1,0 +1,10 @@
+{
+    "userName": "bmk",
+    "firstName": "Balato",
+    "lastName": "Bankalan",
+    "email": "abc@gmail.com",
+    "password": "wuduwali2x",
+    "phone": "11-4711-012343",
+    "role": "Admin"
+}
+
