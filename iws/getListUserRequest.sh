@@ -1,0 +1,2 @@
+curl http://localhost:8080/users/users -X GET -H 'authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTM2Mzg3MzYsImlhdCI6MTU5MzYzNTEzNiwianRpIjoiN2FmMjlmNGRkZWQ0ZmU5M2RmOTkwZGY4MGI2NTgxNzgifQ.FL_rNBpEtv2i8j4x_HWWVdgzMXWuuX6GTMkqKj9hK9I
+L'
