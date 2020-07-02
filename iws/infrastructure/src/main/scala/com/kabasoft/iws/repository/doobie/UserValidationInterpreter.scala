@@ -3,6 +3,7 @@ package com.kabasoft.iws.repository.doobie
 import cats.Applicative
 import cats.data.EitherT
 import cats.implicits._
+import com.kabasoft.iws.repository.UserRepository
 
 class UserValidationInterpreter[F[_]: Applicative](userRepo: UserRepository[F]) extends UserValidation[F] {
   def doesNotExist(user: User): EitherT[F, UserAlreadyExistsError, Unit] =

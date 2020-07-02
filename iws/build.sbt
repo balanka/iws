@@ -1,6 +1,6 @@
 
 ThisBuild / organization := "com.kabasoft"
-ThisBuild / scalaVersion := "2.13.1"
+ThisBuild / scalaVersion := "2.13.3"
 ThisBuild / version      := "0.4.0-SNAPSHOT"
 
 ThisBuild / scalafmtOnCompile := true
@@ -49,6 +49,8 @@ lazy val commonDependencies = Seq(
   "ch.qos.logback" %  "logback-classic" % logbackVersion,
   "com.h2database" % "h2" % H2Version,
   "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+  "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % Test,
+  "org.scalatestplus" %% "scalacheck-1-14" % ScalaTestPlusVersion % Test,
 "io.github.jmcardon" %% "tsec-common" % TsecVersion,
 "io.github.jmcardon" %% "tsec-password" % TsecVersion,
 "io.github.jmcardon" %% "tsec-mac" % TsecVersion,

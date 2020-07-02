@@ -4,6 +4,7 @@ import cats.data._
 import cats.Functor
 import cats.Monad
 import cats.syntax.functor._
+import com.kabasoft.iws.repository.UserRepository
 
 class UserService[F[_]](userRepo: UserRepository[F], validation: UserValidation[F]) {
   def createUser(user: User)(implicit M: Monad[F]): EitherT[F, UserAlreadyExistsError, User] =

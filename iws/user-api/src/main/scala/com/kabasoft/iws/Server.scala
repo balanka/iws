@@ -23,7 +23,7 @@ import com.kabasoft.iws.repository.doobie.{
   VatService
 }
 import cats.effect._
-import cats.implicits._
+//import cats.implicits._
 import io.circe.config.parser
 import org.http4s.implicits._
 import org.http4s.server.{Router, Server => H4Server}
@@ -34,7 +34,22 @@ import tsec.mac.jca.HMACSHA256
 import tsec.passwordhashers.jca.BCrypt
 import tsec.authentication.SecuredRequestHandler
 import com.kabasoft.iws.auth.Auth
-import com.kabasoft.iws.endpoint.UserEndpoints
+import com.kabasoft.iws.endpoint.{
+  AccountEndpoints,
+  ArticleEndpoints,
+  BankEndpoints,
+  BankStatementEndpoints,
+  CostCenterEndpoints,
+  CustomerEndpoints,
+  FinancialsEndpoints,
+  JournalEndpoints,
+  MasterfileEndpoints,
+  PeriodicAccountBalanceEndpoints,
+  RoutesEndpoints,
+  SupplierEndpoints,
+  UserEndpoints,
+  VatEndpoints
+}
 
 object Server extends IOApp {
 
@@ -54,31 +69,44 @@ object Server extends IOApp {
       routeAuth = SecuredRequestHandler(authenticator)
       userEndpoints = UserEndpoints
         .endpoints[F, BCrypt, HMACSHA256](userService, BCrypt.syncPasswordHasher[F], routeAuth)
-      cc_endpoints = endpoint.CostCenterEndpoints(CostCenterService(xa))
-      art_endpoints = endpoint.ArticleEndpoints(ArticleService(xa))
-      mtf_endpoints = endpoint.MasterfileEndpoints(MasterfileService(xa))
-      acc_endpoints = endpoint.AccountEndpoints(
-        AccountService(xa, config.app.balanceSheetAccountId, config.app.incomeStmtAccountId)
+      cc_endpoints = CostCenterEndpoints.endpoints[F, HMACSHA256](CostCenterService(xa), routeAuth)
+      art_endpoints = ArticleEndpoints.endpoints[F, HMACSHA256](ArticleService(xa), routeAuth)
+      mtf_endpoints = MasterfileEndpoints.endpoints[F, HMACSHA256](MasterfileService(xa), routeAuth)
+      acc_endpoints = AccountEndpoints.endpoints[F, HMACSHA256](
+        AccountService(xa, config.app.balanceSheetAccountId, config.app.incomeStmtAccountId),
+        routeAuth
       )
-      pac_endpoints = endpoint.PeriodicAccountBalanceEndpoints(
-        PeriodicAccountBalanceService(xa)
+      pac_endpoints = PeriodicAccountBalanceEndpoints.endpoints[F, HMACSHA256](
+        PeriodicAccountBalanceService(xa),
+        routeAuth
       )
-      customer_endpoints = endpoint.CustomerEndpoints(CustomerService(xa))
-      supplier_endpoints = endpoint.SupplierEndpoints(SupplierService(xa))
-      routes_endpoints = endpoint.RoutesEndpoints(RoutesService(xa))
-      financials_endpoints = endpoint.FinancialsEndpoints(
-        FinancialsTransactionService(xa)
-      )
-      journal_endpoints = endpoint.JournalEndpoints(JournalService(xa))
-      bankstmt_endpoints = endpoint.BankStatementEndpoints(
-        BankStatementService(xa)
-      )
-      bank_endpoints = endpoint.BankEndpoints(BankService(xa))
-      vat_endpoints = endpoint.VatEndpoints(VatService(xa))
-      endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+> bank_endpoints <+> vat_endpoints <+>
-        routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
-        financials_endpoints <+> pac_endpoints <+> journal_endpoints <+> bankstmt_endpoints <+> userEndpoints
-      httpApp = Router("/pets" -> endpoints).orNotFound
+      customer_endpoints = CustomerEndpoints.endpoints[F, HMACSHA256](CustomerService(xa), routeAuth)
+      supplier_endpoints = SupplierEndpoints.endpoints[F, HMACSHA256](SupplierService(xa), routeAuth)
+      routes_endpoints = RoutesEndpoints.endpoints[F, HMACSHA256](RoutesService(xa), routeAuth)
+      financials_endpoints = FinancialsEndpoints.endpoints[F, HMACSHA256](FinancialsTransactionService(xa), routeAuth)
+      journal_endpoints = JournalEndpoints.endpoints[F, HMACSHA256](JournalService(xa), routeAuth)
+      bankstmt_endpoints = BankStatementEndpoints.endpoints[F, HMACSHA256](BankStatementService(xa), routeAuth)
+      bank_endpoints = BankEndpoints.endpoints[F, HMACSHA256](BankService(xa), routeAuth)
+      vat_endpoints = VatEndpoints.endpoints[F, HMACSHA256](VatService(xa), routeAuth)
+      // endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+> vat_endpoints <+>
+      //  routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
+      //   financials_endpoints <+> pac_endpoints <+> journal_endpoints <+> bankstmt_endpoints
+      httpApp = Router(
+        "/acc" -> acc_endpoints,
+        "/art" -> art_endpoints,
+        "/cc" -> cc_endpoints,
+        "/bank" -> bank_endpoints,
+        "/bs" -> bankstmt_endpoints,
+        "/cust" -> customer_endpoints,
+        "/ftr" -> financials_endpoints,
+        "/jou" -> journal_endpoints,
+        "/pac" -> pac_endpoints,
+        "/mf" -> mtf_endpoints,
+        "/rt" -> routes_endpoints,
+        "/sup" -> supplier_endpoints,
+        "/users" -> userEndpoints,
+        "/vat" -> vat_endpoints
+      ).orNotFound
       server <- BlazeServerBuilder[F](serverEc)
         .bindHttp(config.server.port, config.server.host)
         .withHttpApp(CORS(httpApp))

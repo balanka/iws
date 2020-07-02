@@ -64,21 +64,21 @@ private object SQL {
     , ${item.modelid}} )""".update
 
     def getBy(id: String): Query0[Bank] = sql"""
-     SELECT id, name, description, enter_date, modified_date, posting_date,modelid
+     SELECT id, name, description, enter_date, modified_date, posting_date,modelid, company
      FROM Bank
      WHERE id = $id ORDER BY  id ASC
      """.query
 
     def getByModelId(modelid: Int): Query0[Bank] = sql"""
-        SELECT id, name, description, enter_date, modified_date, posting_date, modelid
+        SELECT id, name, description, enter_date, modified_date, posting_date, modelid, company
         FROM Bank  WHERE modelid = $modelid ORDER BY  id ASC
          """.query
     def findSome(model: String*): Query0[Bank] = sql"""
-        SELECT id, name, description, enter_date, modified_date, posting_date, modelid as component
+        SELECT id, name, description, enter_date, modified_date, posting_date, modelid, company as component
         FROM Bank   ORDER BY  id ASC""".query
 
     def list: Query0[Bank] = sql"""
-     SELECT id, name,description, enter_date, modified_date, posting_date, modelid
+     SELECT id, name,description, enter_date, modified_date, posting_date, modelid, company
      FROM Bank
      ORDER BY id  ASC
   """.query

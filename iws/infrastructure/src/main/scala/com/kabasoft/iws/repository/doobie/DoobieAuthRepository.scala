@@ -25,7 +25,7 @@ private object AuthSQL {
 
   def update[A](jwt: AugmentedJWT[A, Long])(implicit hs: JWSSerializer[JWSMacHeader[A]]): Update0 =
     sql"""UPDATE JWT SET JWT = ${jwt.jwt.toEncodedString}, IDENTITY = ${jwt.identity},
-         | EXPIRY = ${jwt.expiry}, LAST_TOUCHED = ${jwt.lastTouched} WHERE ID = ${jwt.id}
+          EXPIRY = ${jwt.expiry}, LAST_TOUCHED = ${jwt.lastTouched} WHERE ID = ${jwt.id}
        """.stripMargin.update
 
   def delete(id: SecureRandomId): Update0 =

@@ -3,6 +3,7 @@ package com.kabasoft.iws.repository.doobie
 import cats.data.OptionT
 import cats.effect.Sync
 import cats.implicits._
+import com.kabasoft.iws.repository.UserRepository
 import com.kabasoft.iws.repository.doobie.SQLPagination._
 import doobie._
 import doobie.implicits._
@@ -20,12 +21,14 @@ private object UserSQL {
     VALUES (${user.userName}, ${user.firstName}, ${user.lastName}, ${user.email}, ${user.hash}, ${user.phone}, ${user.role})
   """.update
 
-  def update(user: User, id: Long): Update0 = sql"""
-    UPDATE USERS
+  def update(user: User, id: Long): Update0 = {
+    println("user>>>>" + user + "id>>>" + id)
+    sql"""UPDATE USERS
     SET FIRST_NAME = ${user.firstName}, LAST_NAME = ${user.lastName},
         EMAIL = ${user.email}, HASH = ${user.hash}, PHONE = ${user.phone}, ROLE = ${user.role}
     WHERE ID = $id
   """.update
+  }
 
   def select(userId: Long): Query0[User] = sql"""
     SELECT USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, ID, ROLE
@@ -55,7 +58,7 @@ class DoobieUserRepositoryInterpreter[F[_]: Sync](val xa: Transactor[F])
   import UserSQL._
 
   def create(user: User): F[User] =
-    insert(user).withUniqueGeneratedKeys[Long]("ID").map(id => user.copy(id = id.some)).transact(xa)
+    insert(user).withUniqueGeneratedKeys[Long]("id").map(id => user.copy(id = id.some)).transact(xa)
 
   def update(user: User): OptionT[F, User] =
     OptionT.fromOption[F](user.id).semiflatMap { id =>

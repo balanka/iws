@@ -1,2 +1,2 @@
 source ~/.profile
-sbt "runMain com.toracoya.petstore.Server"
+sbt "runMain com.kabasoft.iws.Server"
