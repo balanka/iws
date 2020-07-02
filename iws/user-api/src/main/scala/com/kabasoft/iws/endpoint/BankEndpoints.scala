@@ -1,85 +1,102 @@
 package com.kabasoft.iws.endpoint
 
 import cats.data.Validated.{Invalid, Valid}
-import cats.effect.Effect
+import cats.effect.Sync
 import cats.implicits._
+import com.kabasoft.iws.auth.Auth
 import com.kabasoft.iws.domain.Bank
 import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination._
 import com.kabasoft.iws.pagination.PaginationValidator
-import com.kabasoft.iws.repository.doobie.BankService
+import com.kabasoft.iws.repository.doobie.{BankService, User}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.http4s.HttpRoutes
+import org.http4s.{EntityDecoder, HttpRoutes}
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
+import tsec.authentication.{AugmentedJWT, SecuredRequestHandler, asAuthed}
+import tsec.jwt.algorithms.JWTMacAlgo
 
-class BankEndpoints[F[_]: Effect] extends Http4sDsl[F] {
+class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
-  def routes(service: BankService[F]): HttpRoutes[F] = get(service) <+> list(service)
+  implicit val bankDecoder: EntityDecoder[F, Bank] = jsonOf[F, Bank]
 
-  private def list(service: BankService[F]): HttpRoutes[F] =
-    HttpRoutes.of[F] {
+  private def list(service: BankService[F]): AuthEndpoint[F, Auth] = {
+    case req @ POST -> Root asAuthed _ =>
+      for {
+        bank <- req.request.as[Bank]
+        created <- service.create(bank)
+        resp <- Created(created.asJson)
+      } yield resp
+    case DELETE -> Root / id asAuthed _ =>
+      service.delete(id) *> Ok()
 
-      case request @ POST -> Root / "bank" =>
-        for {
-          bank <- request.decodeJson[Bank]
-          created <- service.create(bank)
-          resp <- Created(created.asJson)
-        } yield resp
-      case DELETE -> Root / "bank" / id =>
-        service.delete(id) *> Ok()
+    case req @ PATCH -> Root asAuthed _ =>
+      for {
+        bank <- req.request.as[Bank]
+        updated <- service.update(bank)
+        response <- Ok(updated.asJson)
+      } yield response
 
-      case request @ PATCH -> Root / "bank" =>
-        for {
-          bank <- request.decodeJson[Bank]
-          updated <- service.update(bank)
-          response <- Ok(updated.asJson)
-        } yield response
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+      val page = maybePage.getOrElse(DefaultPage)
+      val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
-      case GET -> Root / "bank" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
-        val page = maybePage.getOrElse(DefaultPage)
-        val pageSize = maybePageSize.getOrElse(DefaultPageSize)
+      PaginationValidator.validate(page, pageSize) match {
+        case Valid(pagination) =>
+          val (from, until) = pagination.range
+          for {
+            retrieved <- service.list(from, until + 1)
+            hasNext = retrieved.size > until
+            vat = if (hasNext) retrieved.init else retrieved
+            response <- Ok("{ \"hits\": " + vat.asJson + " }")
+          } yield response
+        case Invalid(errors) =>
+          BadRequest(ErrorsJson.from(errors).asJson)
+      }
+  }
 
-        PaginationValidator.validate(page, pageSize) match {
-          case Valid(pagination) =>
-            val (from, until) = pagination.range
-            for {
-              retrieved <- service.list(from, until + 1)
-              hasNext = retrieved.size > until
-              vat = if (hasNext) retrieved.init else retrieved
-              response <- Ok("{ \"hits\": " + vat.asJson + " }")
-            } yield response
-          case Invalid(errors) =>
-            BadRequest(ErrorsJson.from(errors).asJson)
-        }
+  private def get(service: BankService[F]): AuthEndpoint[F, Auth] = {
+    case GET -> Root / id asAuthed _ =>
+      service.getBy(id).flatMap {
+        case Some(found) => Ok(found.asJson)
+        case None => NotFound("")
+      }
+    case GET -> Root / "bankmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+      val page = maybePage.getOrElse(DefaultPage)
+      val pageSize = maybePageSize.getOrElse(DefaultPageSize)
+      PaginationValidator.validate(page, pageSize) match {
+        case Valid(pagination) =>
+          val (from, until) = pagination.range
+          for {
+            retrieved <- service.getByModelId(modelid, from, until)
+            hasNext = retrieved.size > until
+            vat = if (hasNext) retrieved.init else retrieved
+            response <- Ok("{ \"hits\": " + vat.asJson + " }")
+
+          } yield response
+        case Invalid(errors) =>
+          BadRequest(ErrorsJson.from(errors).asJson)
+      }
+  }
+
+  def endpoints(
+    service: BankService[F],
+    auth: SecuredRequestHandler[F, Long, User, AugmentedJWT[Auth, Long]]
+  ): HttpRoutes[F] = {
+    val authEndpoints: AuthService[F, Auth] = {
+      Auth.allRolesHandler(list(service).orElse(get(service))) {
+        Auth.adminOnly(list(service).orElse(get(service)))
+      }
     }
 
-  private def get(service: BankService[F]): HttpRoutes[F] =
-    HttpRoutes.of[F] {
-      case GET -> Root / "bank" / id =>
-        service.getBy(id).flatMap {
-          case Some(found) => Ok(found.asJson)
-          case None => NotFound("")
-        }
-      case GET -> Root / "bankmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
-        val page = maybePage.getOrElse(DefaultPage)
-        val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-        PaginationValidator.validate(page, pageSize) match {
-          case Valid(pagination) =>
-            val (from, until) = pagination.range
-            for {
-              retrieved <- service.getByModelId(modelid, from, until)
-              hasNext = retrieved.size > until
-              vat = if (hasNext) retrieved.init else retrieved
-              response <- Ok("{ \"hits\": " + vat.asJson + " }")
-
-            } yield response
-          case Invalid(errors) =>
-            BadRequest(ErrorsJson.from(errors).asJson)
-        }
-    }
+    auth.liftService(authEndpoints)
+  }
 }
+
 object BankEndpoints {
-  def apply[F[_]: Effect](service: BankService[F]): HttpRoutes[F] = new BankEndpoints[F].routes(service)
+  def endpoints[F[_]: Sync, Auth: JWTMacAlgo](
+    service: BankService[F],
+    auth: SecuredRequestHandler[F, Long, User, AugmentedJWT[Auth, Long]]
+  ): HttpRoutes[F] = new BankEndpoints[F, Auth].endpoints(service, auth)
 }

@@ -1,88 +1,101 @@
 package com.kabasoft.iws.endpoint
 
 import cats.data.Validated.{Invalid, Valid}
-import cats.effect.Effect
+import cats.effect.Sync
 import cats.implicits._
+import com.kabasoft.iws.auth.Auth
 import com.kabasoft.iws.domain.CostCenter
 import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination.{PageSizeMatcher, _}
 import com.kabasoft.iws.pagination.PaginationValidator
-import com.kabasoft.iws.repository.doobie.CostCenterService
+import com.kabasoft.iws.repository.doobie.{CostCenterService, User}
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.HttpRoutes
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
+import tsec.authentication.{AugmentedJWT, SecuredRequestHandler, asAuthed}
+import tsec.jwt.algorithms.JWTMacAlgo
 
-class CostCenterEndpoints[F[_]: Effect] extends Http4sDsl[F] {
+class CostCenterEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
-  def routes(service: CostCenterService[F]): HttpRoutes[F] = get(service) <+> list(service)
+  private def list(service: CostCenterService[F]): AuthEndpoint[F, Auth] = {
+    case req @ POST -> Root asAuthed _ =>
+      for {
+        masterfile <- req.request.decodeJson[CostCenter]
+        created <- service.create(masterfile)
+        resp <- Created(created.asJson)
+      } yield resp
 
-  private def list(service: CostCenterService[F]): HttpRoutes[F] =
-    HttpRoutes.of[F] {
-      case request @ POST -> Root / "cc" =>
-        for {
-          masterfile <- request.decodeJson[CostCenter]
-          created <- service.create(masterfile)
-          resp <- Created(created.asJson)
-        } yield resp
+    case DELETE -> Root / id asAuthed _ =>
+      service.delete(id) *>
+        Ok()
+    case req @ PATCH -> Root asAuthed _ =>
+      for {
+        masterfile <- req.request.decodeJson[CostCenter]
+        updated <- service.update(masterfile)
+        response <- Ok(updated.asJson)
+      } yield response
 
-      case DELETE -> Root / "cc" / id =>
-        service.delete(id) *>
-          Ok()
-      case request @ PATCH -> Root / "cc" =>
-        for {
-          masterfile <- request.decodeJson[CostCenter]
-          updated <- service.update(masterfile)
-          response <- Ok(updated.asJson) //.putHeaders(Header("X-Auth-Token", "value"))
-        } yield response
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+      val page = maybePage.getOrElse(DefaultPage)
+      val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
-      case GET -> Root / "cc" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
-        val page = maybePage.getOrElse(DefaultPage)
-        val pageSize = maybePageSize.getOrElse(DefaultPageSize)
+      PaginationValidator.validate(page, pageSize) match {
+        case Valid(pagination) =>
+          val (from, until) = pagination.range
+          for {
+            retrieved <- service.list(from, until + 1)
+            hasNext = retrieved.size > until
+            masterfile = if (hasNext) retrieved.init else retrieved
+            response <- Ok("{ \"hits\": " + masterfile.asJson + " }")
 
-        PaginationValidator.validate(page, pageSize) match {
-          case Valid(pagination) =>
-            val (from, until) = pagination.range
-            for {
-              retrieved <- service.list(from, until + 1)
-              hasNext = retrieved.size > until
-              masterfile = if (hasNext) retrieved.init else retrieved
-              //response <- Ok(masterfile.asJson)
-              response <- Ok("{ \"hits\": " + masterfile.asJson + " }") //, `Access-Control-Allow-Origin`("*"))
+          } yield response
+        case Invalid(errors) =>
+          BadRequest(ErrorsJson.from(errors).asJson)
+      }
+  }
 
-            } yield response
-          case Invalid(errors) =>
-            BadRequest(ErrorsJson.from(errors).asJson)
-        }
+  private def get(service: CostCenterService[F]): AuthEndpoint[F, Auth] = {
+    case GET -> Root / id asAuthed _ =>
+      service.getBy(id).flatMap {
+        case Some(found) => Ok(found.asJson)
+        case None => NotFound("")
+      }
+    case GET -> Root / "ccmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+      val page = maybePage.getOrElse(DefaultPage)
+      val pageSize = maybePageSize.getOrElse(DefaultPageSize)
+      PaginationValidator.validate(page, pageSize) match {
+        case Valid(pagination) =>
+          val (from, until) = pagination.range
+          for {
+            retrieved <- service.getByModelId(modelid, from, until)
+            hasNext = retrieved.size > until
+            transaction = if (hasNext) retrieved.init else retrieved
+            response <- Ok("{ \"hits\": " + transaction.asJson + " }")
+
+          } yield response
+        case Invalid(errors) =>
+          BadRequest(ErrorsJson.from(errors).asJson)
+      }
+  }
+  def endpoints(
+    service: CostCenterService[F],
+    auth: SecuredRequestHandler[F, Long, User, AugmentedJWT[Auth, Long]]
+  ): HttpRoutes[F] = {
+    val authEndpoints: AuthService[F, Auth] = {
+      Auth.allRolesHandler(list(service).orElse(get(service))) {
+        Auth.adminOnly(list(service).orElse(get(service)))
+      }
     }
 
-  private def get(service: CostCenterService[F]): HttpRoutes[F] =
-    HttpRoutes.of[F] {
-      case GET -> Root / "cc" / id =>
-        service.getBy(id).flatMap {
-          case Some(found) => Ok(found.asJson)
-          case None => NotFound("")
-        }
-      case GET -> Root / "ccmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) =>
-        val page = maybePage.getOrElse(DefaultPage)
-        val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-        PaginationValidator.validate(page, pageSize) match {
-          case Valid(pagination) =>
-            val (from, until) = pagination.range
-            for {
-              retrieved <- service.getByModelId(modelid, from, until)
-              hasNext = retrieved.size > until
-              transaction = if (hasNext) retrieved.init else retrieved
-              response <- Ok("{ \"hits\": " + transaction.asJson + " }") //, `Access-Control-Allow-Origin`("*"))
-
-            } yield response
-          case Invalid(errors) =>
-            BadRequest(ErrorsJson.from(errors).asJson)
-        }
-    }
+    auth.liftService(authEndpoints)
+  }
 }
 
 object CostCenterEndpoints {
-  def apply[F[_]: Effect](service: CostCenterService[F]): HttpRoutes[F] = new CostCenterEndpoints[F].routes(service)
+  def endpoints[F[_]: Sync, Auth: JWTMacAlgo](
+    service: CostCenterService[F],
+    auth: SecuredRequestHandler[F, Long, User, AugmentedJWT[Auth, Long]]
+  ): HttpRoutes[F] = new CostCenterEndpoints[F, Auth].endpoints(service, auth)
 }
