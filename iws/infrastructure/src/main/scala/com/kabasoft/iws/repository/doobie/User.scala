@@ -10,8 +10,10 @@ case class User(
   email: String,
   hash: String,
   phone: String,
+  company: String,
   id: Option[Long] = None,
-  role: Role
+  role: Role,
+  modelid: Int = 111
 )
 
 object User {
