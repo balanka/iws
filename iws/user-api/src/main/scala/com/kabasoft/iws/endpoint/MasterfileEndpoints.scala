@@ -28,17 +28,16 @@ class MasterfileEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         resp <- Created(created.asJson)
       } yield resp
 
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *>
-        Ok()
-    case req @ PATCH -> Root asAuthed _ =>
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
+    case req @ PATCH -> Root asAuthed user =>
       for {
         masterfile <- req.request.as[Masterfile]
-        updated <- service.update(masterfile)
+        updated <- service.update(masterfile, user.company)
         response <- Ok(updated.asJson)
       } yield response
 
-    case GET -> Root / "mf" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "mf" :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -46,7 +45,7 @@ class MasterfileEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             masterfile = if (hasNext) retrieved.init else retrieved
             //response <- Ok(masterfile.asJson)
@@ -59,19 +58,19 @@ class MasterfileEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: MasterfileService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / id asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / id asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "mfmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "mfmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }") //, `Access-Control-Allow-Origin`("*"))

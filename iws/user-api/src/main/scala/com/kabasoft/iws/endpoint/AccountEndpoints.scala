@@ -37,17 +37,17 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         created <- service.create(account)
         resp <- Created(created.asJson)
       } yield resp
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *>
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *>
         Ok()
 
-    case req @ PATCH -> Root asAuthed _ =>
+    case req @ PATCH -> Root asAuthed user =>
       for {
         account <- req.request.decodeJson[Account]
-        updated <- service.update(account)
+        updated <- service.update(account, user.company)
         response <- Ok(updated.asJson)
       } yield response
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -55,7 +55,7 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             account = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + account.asJson + " }")
@@ -63,38 +63,39 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
       }
-    case GET -> Root / "balance" / account / from / to asAuthed _ =>
+    case GET -> Root / "balance" / account / from / to asAuthed user =>
       val acc = account
       val fromPeriod = from.toInt
       val toPeriod = to.toInt
       for {
-        account <- service.getBalances(acc, fromPeriod, toPeriod)
+        account <- service.getBalances(acc, fromPeriod, toPeriod, user.company)
         response <- Ok("{\"data\":[ " + account.asJson + "]}")
       } yield response
 
-    case GET -> Root / "close" / from / to asAuthed _ =>
+    case GET -> Root / "close" / from / to asAuthed user =>
       val fromPeriod = from.toInt
       val toPeriod = to.toInt
       for {
-        account <- service.closePeriod(fromPeriod, toPeriod)
+        account <- service.closePeriod(fromPeriod, toPeriod, user.company)
         response <- Ok("{\"hits\":" + account.asJson + "}")
       } yield response
   }
 
   private def get(service: AccountService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / id asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / id asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "accmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "accmd" / IntVar(modelid) :? OffsetMatcher(maybePage)
+          :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }")

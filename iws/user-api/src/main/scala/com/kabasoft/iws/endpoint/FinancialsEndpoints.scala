@@ -27,29 +27,28 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         resp <- Created(created.asJson)
       } yield resp
 
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *>
-        Ok()
-    case req @ PATCH -> Root asAuthed _ =>
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
+    case req @ PATCH -> Root asAuthed user =>
       for {
         transaction <- req.request.decodeJson[FinancialsTransaction]
-        updated <- service.update(transaction)
+        updated <- service.update(transaction, user.company)
         response <- Ok(updated.asJson)
       } yield response
-    case req @ PATCH -> Root / "post" asAuthed _ =>
+    case req @ PATCH -> Root / "post" asAuthed user =>
       for {
         transaction <- req.request.decodeJson[List[FinancialsTransaction]]
-        updated <- service.postAll(transaction)
+        updated <- service.postAll(transaction, user.company)
         response <- Ok(updated.asJson)
       } yield response
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }")
@@ -62,19 +61,19 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: FinancialsTransactionService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / (id) asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / (id) asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "ftrmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "ftrmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }")

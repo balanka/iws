@@ -28,17 +28,17 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         created <- service.create(bank)
         resp <- Created(created.asJson)
       } yield resp
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *> Ok()
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
 
-    case req @ PATCH -> Root asAuthed _ =>
+    case req @ PATCH -> Root asAuthed user =>
       for {
-        bank <- req.request.as[Bank]
-        updated <- service.update(bank)
+        bank <- { println("req.request.as[Bank]" + req.request.as[Bank]); req.request.as[Bank] }
+        updated <- service.update(bank, user.company)
         response <- Ok(updated.asJson)
       } yield response
 
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -46,7 +46,7 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             vat = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + vat.asJson + " }")
@@ -57,19 +57,20 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: BankService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / id asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / id asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "bankmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "bankmd" / IntVar(modelid) :? OffsetMatcher(maybePage)
+          :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             vat = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + vat.asJson + " }")

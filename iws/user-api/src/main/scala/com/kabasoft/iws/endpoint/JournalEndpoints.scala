@@ -29,24 +29,23 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         resp <- Created(created.asJson)
       } yield resp
 
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *>
-        Ok()
-    case req @ PATCH -> Root asAuthed _ =>
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
+    case req @ PATCH -> Root asAuthed user =>
       for {
         journal <- req.request.decodeJson[Journal]
-        updated <- service.update(journal)
+        updated <- service.update(journal, user.company)
         response <- Ok(updated.asJson)
       } yield response
 
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             journal = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + journal.asJson + " }")
@@ -59,14 +58,14 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: JournalService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / accountid / fromPriod / toPeriod asAuthed _ => {
+    case GET -> Root / accountid / fromPriod / toPeriod asAuthed user => {
       val page = DefaultPage
       val pageSize = DefaultPageSize
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.findSome(from, until, accountid, fromPriod, toPeriod)
+            retrieved <- service.findSome(from, until, user.company, accountid, fromPriod, toPeriod)
             response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
           } yield response
 
@@ -74,19 +73,19 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           BadRequest(ErrorsJson.from(errors).asJson)
       }
     }
-    case GET -> Root / (id) asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / (id) asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "joumd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "joumd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }")

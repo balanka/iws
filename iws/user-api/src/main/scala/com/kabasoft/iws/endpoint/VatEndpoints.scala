@@ -35,17 +35,17 @@ class VatEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         created <- service.create(vat)
         resp <- Created(created.asJson)
       } yield resp
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *> Ok()
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
 
-    case req @ PATCH -> Root asAuthed _ =>
+    case req @ PATCH -> Root asAuthed user =>
       for {
         vat <- req.request.decodeJson[Vat]
-        updated <- service.update(vat)
+        updated <- service.update(vat, user.company)
         response <- Ok(updated.asJson)
       } yield response
 
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -53,7 +53,7 @@ class VatEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             vat = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + vat.asJson + " }")
@@ -64,19 +64,19 @@ class VatEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: VatService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / id asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / id asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "vatmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "vatmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             vat = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + vat.asJson + " }")

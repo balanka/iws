@@ -20,32 +20,32 @@ import tsec.jwt.algorithms.JWTMacAlgo
 class CostCenterEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
   private def list(service: CostCenterService[F]): AuthEndpoint[F, Auth] = {
-    case req @ POST -> Root asAuthed _ =>
+    case req @ POST -> Root asAuthed user =>
       for {
-        masterfile <- req.request.decodeJson[CostCenter]
+        masterfile <- { println("user>>>><<<<<: " + user); req.request.decodeJson[CostCenter] }
         created <- service.create(masterfile)
         resp <- Created(created.asJson)
       } yield resp
 
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *>
-        Ok()
-    case req @ PATCH -> Root asAuthed _ =>
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
+    case req @ PATCH -> Root asAuthed user =>
       for {
         masterfile <- req.request.decodeJson[CostCenter]
-        updated <- service.update(masterfile)
+        updated <- service.update(masterfile, user.company)
         response <- Ok(updated.asJson)
       } yield response
 
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
+      println("user>>>><<<<<: " + user);
 
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             masterfile = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + masterfile.asJson + " }")
@@ -57,19 +57,20 @@ class CostCenterEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: CostCenterService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / id asAuthed _ =>
-      service.getBy(id).flatMap {
+    case GET -> Root / id asAuthed user =>
+      service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)
         case None => NotFound("")
       }
-    case GET -> Root / "ccmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "ccmd" / IntVar(modelid) :? OffsetMatcher(maybePage)
+          :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }")

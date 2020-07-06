@@ -29,17 +29,16 @@ class PeriodicAccountBalanceEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http
         resp <- Created(created.asJson)
       } yield resp
 
-    case DELETE -> Root / id asAuthed _ =>
-      service.delete(id) *>
-        Ok()
-    case req @ PATCH -> Root asAuthed _ =>
+    case DELETE -> Root / id asAuthed user =>
+      service.delete(id, user.company) *> Ok()
+    case req @ PATCH -> Root asAuthed user =>
       for {
         pac <- req.request.decodeJson[PeriodicAccountBalance]
-        updated <- service.update(pac)
+        updated <- service.update(pac, user.company)
         response <- Ok(updated.asJson)
       } yield response
 
-    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
 
@@ -47,7 +46,7 @@ class PeriodicAccountBalanceEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.list(from, until + 1)
+            retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             masterfile = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + masterfile.asJson + " }")
@@ -59,14 +58,14 @@ class PeriodicAccountBalanceEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http
   }
 //http://localhost:8080/pets/pac/331034/202001/202004
   private def get(service: PeriodicAccountBalanceService[F]): AuthEndpoint[F, Auth] = {
-    case GET -> Root / accountid / fromPriod / toPeriod asAuthed _ => {
+    case GET -> Root / accountid / fromPriod / toPeriod asAuthed user => {
       val page = DefaultPage
       val pageSize = DefaultPageSize
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.findSome(from, until, accountid, fromPriod, toPeriod)
+            retrieved <- service.findSome(from, until, user.company, accountid, fromPriod, toPeriod)
             response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
           } yield response
 
@@ -74,14 +73,14 @@ class PeriodicAccountBalanceEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http
           BadRequest(ErrorsJson.from(errors).asJson)
       }
     }
-    case GET -> Root / "pacmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed _ =>
+    case GET -> Root / "pacmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.getByModelId(modelid, from, until)
+            retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok("{ \"hits\": " + transaction.asJson + " }")
