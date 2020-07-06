@@ -74,8 +74,16 @@ object Currency extends Enumeration {
   type ccy = Value
   val CHF, CNY, EUR, DEM, GNF, JPY, USD, XOF = Value
 }
-final case class Masterfile(id: String, name: String, description: String, modelid: Int, parent: String) extends IWS
-final case class Routes(id: String, name: String, description: String, modelid: Int, component: String) extends IWS
+final case class Masterfile(
+  id: String,
+  name: String,
+  description: String,
+  modelid: Int,
+  parent: String,
+  company: String
+) extends IWS
+final case class Routes(id: String, name: String, description: String, modelid: Int, component: String, company: String)
+    extends IWS
 final case class Article(
   id: String,
   name: String = "",
@@ -83,7 +91,8 @@ final case class Article(
   modelid: Int,
   parent: String = "",
   price: Amount = 0.0,
-  stocked: Boolean = false
+  stocked: Boolean = false,
+  company: String
 ) extends IWS
 final case class Account(
   id: String,
