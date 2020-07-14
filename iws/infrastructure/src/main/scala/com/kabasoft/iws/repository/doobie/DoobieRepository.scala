@@ -351,9 +351,9 @@ private object SQL {
 
     def update(model: Customer, company: String): Update0 =
       sql"""Update customer set  name =${model.name}, description=${model.description}
-         , street=${model.street}, city=${model.city}, state = ${model.state}, zip=${model.zip}, , country=${model.country}
+         , street=${model.street}, city=${model.city}, state = ${model.state}, zip=${model.zip}, country=${model.country}
          , phone= ${model.phone},  email= ${model.email}, account=${model.account},  revenue_account=${model.oaccount}
-         , iban =${model.iban}, vatcode=${model.vatcode}  company=${model.company}
+         , iban =${model.iban}, vatcode=${model.vatcode},  company=${model.company}
          where id =${model.id} AND COMPANY = ${company}""".update
   }
   object Supplier extends Repository[Supplier, Supplier] {
