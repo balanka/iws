@@ -1,7 +1,7 @@
 //addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.0")
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.28")
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.7.3")
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.7.4")
 addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.6.13")
 
 addSbtPlugin("com.47deg" % "sbt-microsites" % "1.2.1")
