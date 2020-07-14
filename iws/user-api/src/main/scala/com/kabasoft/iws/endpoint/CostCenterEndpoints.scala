@@ -22,7 +22,7 @@ class CostCenterEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   private def list(service: CostCenterService[F]): AuthEndpoint[F, Auth] = {
     case req @ POST -> Root asAuthed user =>
       for {
-        masterfile <- { println("user>>>><<<<<: " + user); req.request.decodeJson[CostCenter] }
+        masterfile <- req.request.decodeJson[CostCenter]
         created <- service.create(masterfile)
         resp <- Created(created.asJson)
       } yield resp
@@ -39,7 +39,6 @@ class CostCenterEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-      println("user>>>><<<<<: " + user);
 
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
