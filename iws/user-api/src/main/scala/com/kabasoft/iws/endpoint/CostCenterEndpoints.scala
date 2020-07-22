@@ -23,7 +23,7 @@ class CostCenterEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case req @ POST -> Root asAuthed user =>
       for {
         masterfile <- req.request.decodeJson[CostCenter]
-        created <- service.create(masterfile)
+        created <- service.create(masterfile.copy(company = user.company))
         resp <- Created(created.asJson)
       } yield resp
 
