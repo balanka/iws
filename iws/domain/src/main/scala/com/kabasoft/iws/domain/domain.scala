@@ -461,6 +461,16 @@ final case class Bank(
   modelid: Int = 11,
   company: String
 ) extends IWS
+final case class BankAccount(iban: String, owner: String, bic: String, companyId: String, modelId: Int = 12)
+    extends IWS {
+  def id: String = iban
+  def name: String = owner
+
+}
+object BankAccount {
+  def apply(iban: String, owner: String, bic: String, companyId: String) =
+    new BankAccount(iban, owner, bic, companyId)
+}
 final case class CostCenter(
   id: String,
   name: String = "",
@@ -731,21 +741,37 @@ object Journal {
     )
 }
 
+/*
+final case  class BankStatement (auftragskonto:String,
+                                 buchungstag:String,
+                                 valutadatum:String,
+                                 buchungstext:String,
+                                 verwendungszweck:String,
+                                 beguenstigter:String,
+                                 kontonummer:String,
+                                 blz:String,
+                                 betrag:String,
+                                 waehrung:String,
+                                 info:String, modelId:Int=999) */
+
 final case class BankStatement(
-  id: Long,
+  bid: Long,
   depositor: String,
-  postingdate: String,
-  valuedate: String,
+  postingdate: Instant,
+  valuedate: Instant,
   postingtext: String,
   purpose: String,
   beneficiary: String,
   accountno: String,
   bankCode: String,
-  amount: String,
+  amount: BigDecimal,
   currency: String,
   info: String,
   company: String,
   companyIban: String,
-  posted: Boolean,
+  posted: Boolean = false,
   modelid: Int = 18
-)
+) extends IWS {
+  def id = bid.toString
+  def name = depositor
+}

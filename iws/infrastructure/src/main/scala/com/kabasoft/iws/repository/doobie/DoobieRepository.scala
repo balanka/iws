@@ -59,9 +59,9 @@ private object SQL {
   object Bank extends Repository[Bank, Bank] {
 
     def create(item: Bank): Update0 =
-      sql"""INSERT INTO Bank (ID, NAME, DESCRIPTION, MODELID) VALUES
+      sql"""INSERT INTO bank (ID, NAME, DESCRIPTION, modelid, COMPANY) VALUES
      (${item.id}, ${item.name}, ${item.description}
-    , ${item.modelid}} )""".update
+    , ${item.modelid},  ${item.company} )""".update
 
     def getBy(id: String, company: String): Query0[Bank] = sql"""
      SELECT id, name, description, enter_date, modified_date, posting_date,modelid, company
@@ -571,12 +571,14 @@ private object SQL {
   }
   object BankStatement extends Repository[BankStatement, BankStatement] {
 
+    //def insertSQL =
+    //  Update[BankStatement]("INSERT INTO bankstatement VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?)", None)
     def create(item: BankStatement): Update0 =
-      sql"""INSERT INTO bankstatement (ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
-            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, modelid) VALUES
-     (SELECT nextval('bankstatement_id_seq'), ${item.id}, ${item.depositor}, ${item.postingdate}, ${item.valuedate}
-    , {item.postingtext}, {item.purpose},${item.beneficiary},  ${item.accountno},{item.bankCode}, {item.amount}
-    , {item.currency}, {item.info}, {item.company}, {item.companyIban}, {item.posted}, {item.modelid} """.update
+      sql"""INSERT INTO bankstatement (ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE, BENEFICIARY,
+            ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO, COMPANY, COMPANYIBAN, POSTED, modelid) VALUES
+     ( NEXTVAL('bankstatement_id_seq'),  ${item.depositor}, ${item.postingdate}, ${item.valuedate}, ${item.postingtext}
+     , ${item.purpose}, ${item.beneficiary},  ${item.accountno}, ${item.bankCode}, ${item.amount}, ${item.currency}
+     , ${item.info}, ${item.company}, ${item.companyIban}, ${item.posted}, ${item.modelid} )""".update
 
     def getBy(id: String, company: String): Query0[BankStatement] = sql"""SELECT ID, DEPOSITOR, POSTINGDATE,
          VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY

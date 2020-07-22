@@ -61,6 +61,14 @@ case class BankService[F[_]: Sync](transactor: Transactor[F]) extends Service[F,
 
 }
 case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, BankStatement] {
+  def insert(items: List[BankStatement]) = {
+    println("Data loaded!!!!" + SQL.BankStatement.create(items(0)).sql)
+    getXX(SQL.BankStatement.create, items).sequence.transact(transactor)
+  }
+  //def insert(items: List[BankStatement])=(for {
+  //  bs_created <- items.traverse(create(_).run)
+  //} yield bs_created).transact(transactor)
+  //SQL.BankStatement.insertSQL.updateMany(items).transact(transactor)
   def create(item: BankStatement): F[Int] = SQL.BankStatement.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.BankStatement.delete(id, company).run.transact(transactor)
   def list(from: Int, until: Int, company: String): F[List[BankStatement]] =
@@ -615,6 +623,15 @@ CREATE SEQUENCE journal_id_seq
    START 13641
    CACHE 1;
 alter sequence journal_id_seq owner to postgres;
+
+DROP SEQUENCE IF EXISTS bankstatement_id_seq ;
+CREATE SEQUENCE bankstatement_id_seq
+   INCREMENT 1
+   MINVALUE 1
+   MAXVALUE 9223372036854775807
+   START 38963
+   CACHE 1;
+alter sequence bankstatement_id_seq owner to postgres;
 
 CREATE TABLE USERS (
   ID BIGSERIAL PRIMARY KEY,
