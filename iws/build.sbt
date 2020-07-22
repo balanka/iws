@@ -41,6 +41,8 @@ val ScalaTestPlusVersion = "3.2.0.0"
 val FlywayVersion = "6.4.4"
 val TsecVersion = "0.2.1"
 val H2Version = "1.4.200"
+val zioVersion = "1.0.0-RC21-2"
+
 
 
 lazy val commonDependencies = Seq(
@@ -58,6 +60,10 @@ lazy val commonDependencies = Seq(
 "io.github.jmcardon" %% "tsec-jwt-mac" % TsecVersion,
 "io.github.jmcardon" %% "tsec-jwt-sig" % TsecVersion,
 "io.github.jmcardon" %% "tsec-http4s" % TsecVersion,
+  "dev.zio" %% "zio" % zioVersion,
+  "dev.zio" %% "zio-streams" % zioVersion,
+  "dev.zio" %% "zio-test"          % zioVersion % "test",
+  "dev.zio" %% "zio-test-sbt"      % zioVersion % "test"
 )
 
 lazy val databaseDependencies = Seq(
