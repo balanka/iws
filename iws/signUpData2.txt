@@ -1,10 +1,11 @@
 {
-    "userName": "kadi",
+    "userName": "bate2",
     "firstName": "Balato",
     "lastName": "Bankalan",
-    "email": "abckadi@gmail.com",
+    "email": "balato@gmail.com",
     "password": "wuduwali2x",
     "phone": "11-4711-012343",
+    "company":"2000",
     "role": "Admin"
 }
 

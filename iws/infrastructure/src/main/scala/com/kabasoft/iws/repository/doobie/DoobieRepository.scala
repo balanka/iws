@@ -349,12 +349,15 @@ private object SQL {
     def delete(id: String, company: String): Update0 =
       sql"""DELETE FROM customer WHERE ID = $id AND COMPANY = ${company}""".update
 
-    def update(model: Customer, company: String): Update0 =
-      sql"""Update customer set  name =${model.name}, description=${model.description}
+    def update(model: Customer, company: String): Update0 = {
+      val sq = sql"""Update customer set  name =${model.name}, description=${model.description}
          , street=${model.street}, city=${model.city}, state = ${model.state}, zip=${model.zip}, country=${model.country}
          , phone= ${model.phone},  email= ${model.email}, account=${model.account},  revenue_account=${model.oaccount}
          , iban =${model.iban}, vatcode=${model.vatcode},  company=${model.company}
          where id =${model.id} AND COMPANY = ${company}""".update
+      println("sql>>>>" + sq.sql)
+      sq
+    }
   }
   object Supplier extends Repository[Supplier, Supplier] {
 
