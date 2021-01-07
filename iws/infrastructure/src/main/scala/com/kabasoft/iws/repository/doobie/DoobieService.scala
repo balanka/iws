@@ -102,6 +102,22 @@ case class MasterfileService[F[_]: Sync](transactor: Transactor[F]) extends Serv
   def update(model: Masterfile, company: String): F[List[Int]] =
     getXX(SQL.Masterfile.update, List(model), company).sequence.transact(transactor)
 }
+case class ModuleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Module] {
+
+  def create(item: Module): F[Int] = SQL.Module.create(item).run.transact(transactor)
+
+  def delete(id: String, company: String): F[Int] = SQL.Module.delete(id, company).run.transact(transactor)
+  def list(from: Int, until: Int, company: String): F[List[Module]] =
+    paginate(until - from, from)(SQL.Module.list(company)).to[List].transact(transactor)
+  def getBy(id: String, company: String): F[Option[Module]] = SQL.Module.getBy(id, company).option.transact(transactor)
+  def findSome(from: Int, until: Int, company: String, model: String*): F[List[Module]] =
+    paginate(until - from, from)(SQL.Module.findSome(company, model: _*)).to[List].transact(transactor)
+  def getByModelId(modelid: Int, from: Int, until: Int, company: String): F[List[Module]] =
+    paginate(until - from, from)(SQL.Module.getByModelId(modelid, company)).to[List].transact(transactor)
+  def update(model: Module, company: String): F[List[Int]] =
+    getXX(SQL.Module.update, List(model), company).sequence.transact(transactor)
+
+}
 case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, CostCenter] {
   def create(item: CostCenter): F[Int] = SQL.CostCenter.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.CostCenter.delete(id, company).run.transact(transactor)
@@ -651,5 +667,20 @@ CREATE TABLE JWT (
   EXPIRY TIMESTAMP NOT NULL,
   LAST_TOUCHED TIMESTAMP
 );
+create table if not exists public.module
+(
+	id varchar(50) not null
+		constraint module_pkey
+			primary key,
+	name varchar(255) not null,
+	description varchar(255),
+	account varchar(50) not null,
+	posting_date timestamp default CURRENT_DATE not null,
+	modified_date timestamp default CURRENT_DATE not null,
+	enter_date timestamp default CURRENT_DATE not null,
+	company varchar(50) not null,
+	modelid integer default 6 not null
+);
 
+alter table public.module owner to postgres;
  */

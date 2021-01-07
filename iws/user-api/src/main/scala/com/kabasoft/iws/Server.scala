@@ -15,6 +15,7 @@ import com.kabasoft.iws.repository.doobie.{
   FinancialsTransactionService,
   JournalService,
   MasterfileService,
+  ModuleService,
   PeriodicAccountBalanceService,
   RoutesService,
   SupplierService,
@@ -23,7 +24,7 @@ import com.kabasoft.iws.repository.doobie.{
   VatService
 }
 import cats.effect._
-//import cats.implicits._
+
 import io.circe.config.parser
 import org.http4s.implicits._
 import org.http4s.server.{Router, Server => H4Server}
@@ -44,6 +45,7 @@ import com.kabasoft.iws.endpoint.{
   FinancialsEndpoints,
   JournalEndpoints,
   MasterfileEndpoints,
+  ModuleEndpoints,
   PeriodicAccountBalanceEndpoints,
   RoutesEndpoints,
   SupplierEndpoints,
@@ -70,6 +72,7 @@ object Server extends IOApp {
       userEndpoints = UserEndpoints
         .endpoints[F, BCrypt, HMACSHA256](userService, BCrypt.syncPasswordHasher[F], routeAuth)
       cc_endpoints = CostCenterEndpoints.endpoints[F, HMACSHA256](CostCenterService(xa), routeAuth)
+      module_endpoints = ModuleEndpoints.endpoints[F, HMACSHA256](ModuleService(xa), routeAuth)
       art_endpoints = ArticleEndpoints.endpoints[F, HMACSHA256](ArticleService(xa), routeAuth)
       mtf_endpoints = MasterfileEndpoints.endpoints[F, HMACSHA256](MasterfileService(xa), routeAuth)
       acc_endpoints = AccountEndpoints.endpoints[F, HMACSHA256](
@@ -86,7 +89,7 @@ object Server extends IOApp {
       financials_endpoints = FinancialsEndpoints.endpoints[F, HMACSHA256](FinancialsTransactionService(xa), routeAuth)
       journal_endpoints = JournalEndpoints.endpoints[F, HMACSHA256](JournalService(xa), routeAuth)
       bankstmt_endpoints = BankStatementEndpoints.endpoints[F, HMACSHA256](BankStatementService(xa), routeAuth)
-      bank_endpoints = BankEndpoints.endpoints[F, HMACSHA256](BankService(xa), routeAuth)
+      bank_endpoints = BankEndpoints.endpoints[F, HMACSHA256](BankService(xa), CostCenterService(xa), routeAuth)
       vat_endpoints = VatEndpoints.endpoints[F, HMACSHA256](VatService(xa), routeAuth)
       // endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+> vat_endpoints <+>
       //  routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
@@ -94,12 +97,14 @@ object Server extends IOApp {
       httpApp = Router(
         "/acc" -> acc_endpoints,
         "/art" -> art_endpoints,
-        "/cc" -> cc_endpoints,
+        //"/cc" -> cc_endpoints,
+        "/cc" -> bank_endpoints,
         "/bank" -> bank_endpoints,
         "/bs" -> bankstmt_endpoints,
         "/cust" -> customer_endpoints,
         "/ftr" -> financials_endpoints,
         "/jou" -> journal_endpoints,
+        "/md" -> module_endpoints,
         "/pac" -> pac_endpoints,
         "/mf" -> mtf_endpoints,
         "/rt" -> routes_endpoints,

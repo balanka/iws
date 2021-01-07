@@ -89,6 +89,38 @@ private object SQL {
     def update(model: Bank, company: String): Update0 = sql"""Update Bank set id = ${model.id}, name =${model.name},
          description=${model.description}  where id =${model.id} AND COMPANY=${company} """.update
   }
+  object Module extends Repository[Module, Module] {
+
+    def create(item: Module): Update0 =
+      sql"""INSERT INTO module (ID, NAME, DESCRIPTION, modelid, COMPANY) VALUES
+     (${item.id}, ${item.name}, ${item.description}, ${item.modelid},  ${item.company} )""".update
+
+    def getBy(id: String, company: String): Query0[Module] = sql"""
+     SELECT id, name, description, enter_date, modified_date, posting_date,modelid, company
+     FROM module
+     WHERE id = $id AND COMPANY=${company} ORDER BY  id ASC
+     """.query
+
+    def getByModelId(modelid: Int, company: String): Query0[Module] = sql"""
+        SELECT id, name, description, enter_date, modified_date, posting_date, modelid, company
+        FROM module  WHERE modelid = $modelid ORDER BY  id ASC
+         """.query
+    def findSome(company: String, model: String*): Query0[Module] = sql"""
+        SELECT id, name, description, enter_date, modified_date, posting_date, modelid, company as component
+        FROM module   WHERE COMPANY=${company} ORDER BY  id ASC""".query
+
+    def list(company: String): Query0[Module] = sql"""
+     SELECT id, name,description, enter_date, modified_date, posting_date, modelid, company
+     FROM module WHERE COMPANY=${company}
+     ORDER BY id  ASC
+  """.query
+
+    def delete(id: String, company: String): Update0 =
+      sql"""DELETE FROM module WHERE ID = $id AND COMPANY=${company}""".update
+
+    def update(model: Module, company: String): Update0 = sql"""Update module set id = ${model.id}, name =${model.name},
+         description=${model.description}  where id =${model.id} AND COMPANY=${company} """.update
+  }
   object Routes extends Repository[Routes, Routes] {
 
     def create(item: Routes): Update0 =
@@ -121,6 +153,39 @@ private object SQL {
 
     def update(model: Routes, company: String): Update0 = sql"""Update Routes set id = ${model.id}, name =${model.name},
          description=${model.description}, parent=${model.component}  where id =${model.id} AND COMPANY=${company}""".update
+  }
+  object Company extends Repository[Company, Company] {
+    def create(item: Company): Update0 =
+      sql"""INSERT INTO company (ID, NAME, DESCRIPTION, modelid) VALUES
+     (${item.id}, ${item.name}, ${item.description}
+    , ${item.modelid} )""".update
+
+    def getBy(id: String, company: String): Query0[Company] = sql"""
+     SELECT id, name, description, modelid
+     FROM company
+     WHERE id = $id AND COMPANY=${company} ORDER BY  id ASC
+     """.query
+
+    def getByModelId(modelid: Int, company: String): Query0[Company] = sql"""
+        SELECT id, name, description, modelid
+        FROM company  WHERE modelid = $modelid AND COMPANY=${company} ORDER BY  id ASC
+         """.query
+
+    def findSome(company: String, model: String*): Query0[Company] = sql"""
+        SELECT id, name, description, modelid
+        FROM company   WHERE COMPANY=${company} ORDER BY  id ASC""".query
+
+    def list(company: String): Query0[Company] = sql"""
+     SELECT id, name,description, modelid FROM company WHERE AND COMPANY=${company}
+     ORDER BY id  ASC
+  """.query
+
+    def delete(id: String, company: String): Update0 =
+      sql"""DELETE FROM company WHERE ID = $id AND COMPANY=${company}""".update
+
+    def update(model: Company, company: String): Update0 =
+      sql"""Update company set id = ${model.id}, name =${model.name},
+         description=${model.description}  where id =${model.id} AND COMPANY=${company}""".update
   }
   object Masterfile extends Repository[Masterfile, Masterfile] {
     def create(item: Masterfile): Update0 =

@@ -451,6 +451,16 @@ object PeriodicAccountBalance {
         m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
     }
 }
+final case class Module(
+  id: String,
+  name: String = "",
+  description: String = "",
+  enterdate: Instant = Instant.now(),
+  changedate: Instant = Instant.now(),
+  postingdate: Instant = Instant.now(),
+  modelid: Int = 300,
+  company: String
+) extends IWS
 final case class Bank(
   id: String,
   name: String = "",
@@ -775,3 +785,39 @@ final case class BankStatement(
   def id = bid.toString
   def name = depositor
 }
+final case class Company(
+  id: String,
+  name: String,
+  description: String = "",
+  street: String,
+  city: String,
+  state: String,
+  zip: String,
+  bankAccid: String,
+  purchasingClearingAccid: String,
+  salesClearingAccid: String,
+  paymentClearingAccid: String,
+  settlementClearingAccid: String,
+  taxCode: String,
+  vatCode: String,
+  currency: String,
+  balanceSheetAccid: String,
+  incomeStmtAccid: String,
+  cashAccid: String,
+  enterdate: Instant = Instant.now(),
+  posted: Instant = Instant.now(),
+  updated: Instant = Instant.now(),
+  modelid: Int = 18,
+  pageHeaderText: String,
+  pageFooterText: String,
+  headerText: String,
+  footerText: String,
+  logoContent: String,
+  logoName: String,
+  contentType: String,
+  partner: String,
+  tel: String,
+  fax: String,
+  email: String,
+  locale: String
+)
