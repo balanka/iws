@@ -13,7 +13,8 @@ case class User(
   company: String,
   id: Option[Long] = None,
   role: Role,
-  modelid: Int = 111
+  modelid: Int = 111,
+  menu: String = ""
 )
 
 object User {

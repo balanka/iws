@@ -31,15 +31,17 @@ private object UserSQL {
   }
 
   def select(userId: Long): Query0[User] = sql"""
-    SELECT USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, COMPANY, ID, ROLE, MODELID
-    FROM USERS
-    WHERE ID = $userId
+    SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.HASH, u.PHONE, u.COMPANY, u.ID, u.ROLE
+    , u.MODELID, string_agg(moduleid, ', ') AS menu
+    FROM USERS U,  USERMENU m
+    WHERE u.ID = m.userid and u.ID= $userId group by u.id
   """.query
 
   def byUserName(userName: String): Query0[User] = sql"""
-    SELECT USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, COMPANY, ID, ROLE, MODELID
-    FROM USERS
-    WHERE USER_NAME = $userName
+    SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.HASH, u.PHONE, u.COMPANY, u.ID, u.ROLE
+    , u.MODELID, string_agg(moduleid, ', ') AS menu
+    FROM USERS U,  USERMENU m
+    WHERE u.ID = m.userid and u.USER_NAME= $userName group by u.id
   """.query[User]
 
   def delete(userId: Long): Update0 = sql"""
