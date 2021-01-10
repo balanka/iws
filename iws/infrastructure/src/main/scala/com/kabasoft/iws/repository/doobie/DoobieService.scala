@@ -118,6 +118,28 @@ case class ModuleService[F[_]: Sync](transactor: Transactor[F]) extends Service[
     getXX(SQL.Module.update, List(model), company).sequence.transact(transactor)
 
 }
+case class CompanyService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Company] {
+  def create(item: Company): F[Int] = SQL.Company.create(item).run.transact(transactor)
+  def delete(id: String, company: String): F[Int] = SQL.Company.delete(id, company).run.transact(transactor)
+  def list(from: Int, until: Int, company: String): F[List[Company]] =
+    paginate(until - from, from)(SQL.Company.list(company))
+      .to[List]
+      .transact(transactor)
+  def getBy(id: String, company: String): F[Option[Company]] =
+    SQL.Company.getBy(id, company).option.transact(transactor)
+  def findSome(from: Int, until: Int, company: String, model: String*): F[List[Company]] =
+    paginate(until - from, from)(SQL.Company.findSome(company, model: _*))
+      .to[List]
+      .transact(transactor)
+  def getByModelId(modelid: Int, from: Int, until: Int, company: String): F[List[Company]] =
+    paginate(until - from, from)(SQL.Company.getByModelId(modelid, company))
+      .to[List]
+      .transact(transactor)
+  def update(model: Company, company: String): F[List[Int]] =
+    getXX(SQL.Company.update, List(model), company).sequence.transact(transactor)
+
+}
+
 case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, CostCenter] {
   def create(item: CostCenter): F[Int] = SQL.CostCenter.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.CostCenter.delete(id, company).run.transact(transactor)

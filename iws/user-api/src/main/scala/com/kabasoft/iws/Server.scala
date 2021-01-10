@@ -7,6 +7,7 @@ import com.kabasoft.iws.repository.doobie.{
   ArticleService,
   BankService,
   BankStatementService,
+  CompanyService,
   CostCenterService,
   CustomerService,
   DatabaseConfig,
@@ -40,6 +41,7 @@ import com.kabasoft.iws.endpoint.{
   ArticleEndpoints,
   BankEndpoints,
   BankStatementEndpoints,
+  CompanyEndpoints,
   CostCenterEndpoints,
   CustomerEndpoints,
   FinancialsEndpoints,
@@ -79,6 +81,7 @@ object Server extends IOApp {
         AccountService(xa, config.app.balanceSheetAccountId, config.app.incomeStmtAccountId),
         routeAuth
       )
+      comp_endpoints = CompanyEndpoints.endpoints[F, HMACSHA256](CompanyService(xa), routeAuth)
       pac_endpoints = PeriodicAccountBalanceEndpoints.endpoints[F, HMACSHA256](
         PeriodicAccountBalanceService(xa),
         routeAuth
@@ -101,6 +104,7 @@ object Server extends IOApp {
         "/cc" -> bank_endpoints,
         "/bank" -> bank_endpoints,
         "/bs" -> bankstmt_endpoints,
+        "/com" -> comp_endpoints,
         "/cust" -> customer_endpoints,
         "/ftr" -> financials_endpoints,
         "/jou" -> journal_endpoints,
