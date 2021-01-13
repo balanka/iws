@@ -104,7 +104,7 @@ object Server extends IOApp {
         "/cc" -> bank_endpoints,
         "/bank" -> bank_endpoints,
         "/bs" -> bankstmt_endpoints,
-        "/com" -> comp_endpoints,
+        "/comp" -> comp_endpoints,
         "/cust" -> customer_endpoints,
         "/ftr" -> financials_endpoints,
         "/jou" -> journal_endpoints,
