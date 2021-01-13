@@ -785,6 +785,7 @@ final case class BankStatement(
   def id = bid.toString
   def name = depositor
 }
+
 final case class Company(
   id: String,
   name: String,
@@ -793,20 +794,20 @@ final case class Company(
   city: String,
   state: String,
   zip: String,
-  bankAccid: String,
-  purchasingClearingAccid: String,
-  salesClearingAccid: String,
-  paymentClearingAccid: String,
-  settlementClearingAccid: String,
+  bankAcc: String,
+  purchasingClearingAcc: String,
+  salesClearingAcc: String,
+  paymentClearingAcc: String,
+  settlementClearingAcc: String,
+  balanceSheetAcc: String,
+  incomeStmtAcc: String,
+  cashAcc: String,
   taxCode: String,
   vatCode: String,
   currency: String,
-  balanceSheetAccid: String,
-  incomeStmtAccid: String,
-  cashAccid: String,
   enterdate: Instant = Instant.now(),
-  posted: Instant = Instant.now(),
-  updated: Instant = Instant.now(),
+  postingdate: Instant = Instant.now(),
+  changedate: Instant = Instant.now(),
   modelid: Int = 18,
   pageHeaderText: String,
   pageFooterText: String,
