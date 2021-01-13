@@ -808,7 +808,7 @@ final case class Company(
   enterdate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
-  modelid: Int = 18,
+  modelid: Int = 10,
   pageHeaderText: String,
   pageFooterText: String,
   headerText: String,
