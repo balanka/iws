@@ -1,16 +1,23 @@
 package com.kabasoft.iws.repository.doobie
 
 import java.time.Instant
+
 import cats._
 import cats.effect.Sync
 import cats.implicits._
-import doobie._
+import doobie.ConnectionIO
 import doobie.implicits._
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.{Journal => DJournal, PeriodicAccountBalance => DPAC}
+import com.kabasoft.iws.domain.{
+  Journal => DJournal,
+  PeriodicAccountBalance => DPAC,
+  BankStatement => BS,
+  FinancialsTransaction,
+  FinancialsTransactionDetails => FTDetails
+}
 import com.kabasoft.iws.service.Service
 import com.kabasoft.iws.repository.doobie.SQLPagination._
 import com.kabasoft.iws.domain.PeriodicAccountBalance.pacMonoid
@@ -81,6 +88,76 @@ case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends S
     paginate(until - from, from)(SQL.BankStatement.getByModelId(modelid, company)).to[List].transact(transactor)
   def update(models: BankStatement, company: String): F[List[Int]] =
     getXX(SQL.BankStatement.update, List(models), company).sequence.transact(transactor)
+
+  def postAll(ids: List[Long]): F[List[Int]] =
+    (for {
+      bankStatements <- ids.traverse(SQL.BankStatement.getBy(_).unique)
+
+      paiements <- bankStatements.filter(_.posted == false).traverse(createPaiment(_))
+      settlments <- bankStatements.filter(_.posted == false).traverse(createSettlement(_))
+    } yield paiements ++ settlments).transact(transactor)
+
+  def createPaiment(bs: BS): ConnectionIO[Int] =
+    for {
+      company <- SQL.Company.getBy(bs.company, bs.company).unique
+      suppliers <- SQL.Supplier.getByIBAN(bs.accountno, bs.company).unique
+      ftr_created <- SQL.FinancialsTransaction.create(createFTX(bs, suppliers, company.bankAcc)).run
+    } yield ftr_created
+  def createSettlement(bs: BS): ConnectionIO[Int] =
+    for {
+      company <- SQL.Company.getBy(bs.company, bs.company).unique
+      customers <- SQL.Customer.getByIBAN(bs.accountno, bs.company).unique
+      ftr_created <- SQL.FinancialsTransaction.create(createFT(bs, customers, company.bankAcc)).run
+    } yield ftr_created
+
+  private[this] def createFT(bs: BankStatement, c: Customer, bankAccId: String): FinancialsTransaction = {
+    val date = Instant.now()
+    val period = common.getPeriod(Instant.now())
+    val l =
+      FTDetails(-1L, -1L, bankAccId, true, c.account, bs.amount, bs.valuedate, bs.postingtext, bs.currency, bs.company)
+    FinancialsTransaction(
+      -1L,
+      -1L,
+      "100",
+      c.account,
+      bs.valuedate,
+      date,
+      date,
+      period,
+      false,
+      122,
+      bs.company,
+      bs.purpose,
+      0,
+      0,
+      List(l)
+    )
+  }
+
+  private[this] def createFTX(bs: BankStatement, s: Supplier, bankAccId: String): FinancialsTransaction = {
+    val date = Instant.now()
+    val period = common.getPeriod(Instant.now())
+    val l =
+      FTDetails(-1L, -1L, s.oaccount, true, bankAccId, bs.amount, bs.valuedate, bs.purpose, bs.currency, bs.company)
+    FinancialsTransaction(
+      -1L,
+      -1L,
+      "100",
+      s.account,
+      bs.valuedate,
+      date,
+      date,
+      period,
+      false,
+      122,
+      bs.company,
+      bs.purpose,
+      0,
+      0,
+      List(l)
+    )
+  }
+
 }
 case class MasterfileService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Masterfile] {
   def create(item: Masterfile): F[Int] = SQL.Masterfile.create(item).run.transact(transactor)
@@ -432,7 +509,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ConnectionIO[List[Int]] =
     (
       for {
-        pac <- getIds(model: FinancialsTransaction).traverse(SQL.PeriodicAccountBalance.getBy(_, company).option)
+        pac <- getIds(model).traverse(SQL.PeriodicAccountBalance.getBy(_, company).option)
         oldRecords: List[DPAC] = getOldPac(pac, model)
         newRecords: List[DPAC] = getNewPac(pac, model)
         journalEntries: List[DJournal] = newJournalEntries(model, oldRecords ::: newRecords)
@@ -503,9 +580,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     lines: List[FTDetails]
   ): List[DPAC] = {
 
-    val pacx1: List[(Option[DPAC], Boolean)] = lines
-      .map(line => createIfNone(pacList, period, line, line.account))
-
+    val pacx1 = lines.map(line => createIfNone(pacList, period, line, line.account))
     val pacx1x: List[DPAC] = pacx1.filter(_._2 == true).map(_._1).flatten.toSet.toList
     val poacx1: List[(Option[DPAC], Boolean)] = lines
       .map(line => createIfNone(pacList, period, line, line.oaccount))
@@ -537,24 +612,21 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     accountId: String
   ): (Option[DPAC], Boolean) = {
     val pacId = DPAC.createId(period, accountId)
-    val pacx: Option[DPAC] = pacList.flatten.toSet.find(pac_ => pac_.id == pacId)
-    val pacO: (Option[DPAC], Boolean) =
-      pacx match {
-        case Some(pac) => {
-          val x =
-            if ((line.account == pac.account && line.side)
-              || (line.oaccount == pac.account && !line.side)) Some(pac)
-            else None
-          (x, false)
-        }
-        case None =>
-          val y =
-            if (line.account == accountId) Some(createPAC(line.account, period, line))
-            else if (line.oaccount == accountId) Some(createPAC(line.oaccount, period, line))
-            else None
-          (y, true)
-      }
-    pacO
+    val foundPac: Option[DPAC] = pacList.flatten.toSet.find(pac_ => pac_.id == pacId)
+    def f(line: FTDetails, pac: DPAC): Option[DPAC] =
+      if ((line.account == pac.account && line.side)
+        || (line.oaccount == pac.account && !line.side))
+        Some(pac)
+      else None
+    def fx(line: FTDetails, period: Int, accountId: String): Option[DPAC] =
+      if (line.account == accountId) Some(createPAC(line.account, period, line))
+      else if (line.oaccount == accountId) Some(createPAC(line.oaccount, period, line))
+      else None
+
+    foundPac match {
+      case Some(pac) => (f(line, pac), false)
+      case None => (fx(line, period, accountId), true)
+    }
   }
 
   private[this] def createJournalEntries(
@@ -566,12 +638,9 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     val pacId = DPAC.createId(model.getPeriod, line.account)
     val poacId = DPAC.createId(model.getPeriod, line.oaccount)
     val zeroAmount = BigDecimal(0)
-    val pac: DPAC = pacList
-      .find(pac_ => pac_.id == pacId)
-      .getOrElse(DPAC.apply("", "", zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", ""))
-    val poac: DPAC = pacList
-      .find(poac_ => poac_.id == poacId)
-      .getOrElse(DPAC.apply("", "", zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", ""))
+    val dummyAcc = DPAC.apply("", "", zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", "")
+    val pac: DPAC = pacList.find(pac_ => pac_.id == pacId).getOrElse(dummyAcc)
+    val poac: DPAC = pacList.find(poac_ => poac_.id == poacId).getOrElse(dummyAcc)
     val jou1 = DJournal(
       -1,
       model.tid,
