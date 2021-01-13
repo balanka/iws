@@ -161,31 +161,51 @@ private object SQL {
     , ${item.modelid} )""".update
 
     def getBy(id: String, company: String): Query0[Company] = sql"""
-     SELECT id, name, description, modelid
-     FROM company
-     WHERE id = $id AND COMPANY=${company} ORDER BY  id ASC
-     """.query
+    select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
+     , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
+     ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
+     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+     FROM company C
+    WHERE C.id = $id  ORDER BY  C.id ASC""".query
 
     def getByModelId(modelid: Int, company: String): Query0[Company] = sql"""
-        SELECT id, name, description, modelid
-        FROM company  WHERE modelid = $modelid AND COMPANY=${company} ORDER BY  id ASC
+      select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
+     , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
+     ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
+     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+      FROM company C
+   WHERE C.modelid = $modelid AND C.ID=${company} ORDER BY  C.id ASC
          """.query
 
     def findSome(company: String, model: String*): Query0[Company] = sql"""
-        SELECT id, name, description, modelid
-        FROM company   WHERE COMPANY=${company} ORDER BY  id ASC""".query
+     select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
+     , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
+     ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
+     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+    FROM company FROM company C
+    WHERE C.id=${company} ORDER BY  C.id ASC""".query
 
     def list(company: String): Query0[Company] = sql"""
-     SELECT id, name,description, modelid FROM company WHERE AND COMPANY=${company}
-     ORDER BY id  ASC
+      select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
+     , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
+     ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
+     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+   FROM company C
+    WHERE  C.ID=${company} ORDER BY C.id  ASC
   """.query
 
     def delete(id: String, company: String): Update0 =
-      sql"""DELETE FROM company WHERE ID = $id AND COMPANY=${company}""".update
+      sql"""DELETE FROM company C WHERE C.ID = $id""".update
 
     def update(model: Company, company: String): Update0 =
-      sql"""Update company set id = ${model.id}, name =${model.name},
-         description=${model.description}  where id =${model.id} AND COMPANY=${company}""".update
+      sql"""Update company C set C.id = ${model.id}, C.name =${model.name}, C.description=${model.description}
+      street =${model.street}, city=${model.city}, state =${model.state}, zip=${model.zip}, bankacc=${model.bankAcc}
+     , purchasingclearingacc=${model.purchasingClearingAcc}, salesclearingacc=${model.salesClearingAcc}
+     , paymentclearingacc =${model.paymentClearingAcc}, settlementclearingacc=${model.settlementClearingAcc}
+     , balanceSheetAcc =${model.balanceSheetAcc}, incomeStmtAcc=${model.incomeStmtAcc}
+     , cashAccount=${model.cashAcc}, taxcode=${model.taxCode}, vatcode=${model.vatCode}, locale =${model.locale}
+     , tel=${model.tel}, fax=${model.fax}, partner=${model.partner}, email=${model.email}
+           where C.id =${model.id}""".update
   }
   object Masterfile extends Repository[Masterfile, Masterfile] {
     def create(item: Masterfile): Update0 =
@@ -404,6 +424,12 @@ private object SQL {
         FROM customer   WHERE  COMPANY = ${company} ORDER BY  id ASC
          """.query
 
+    def getByIBAN(iban: String, company: String): Query0[Customer] = sql"""
+        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, REVENUE_ACCOUNT
+        , C.IBAN, VATCODE, C.COMPANY, C.modelid,  enter_date, modified_date, posting_date
+        FROM customer C, BankAccount C WHERE B.iban =${iban} AND C.id = B.owner AND C.COMPANY = ${company} ORDER BY  C.id ASC
+         """.query
+
     def list(company: String): Query0[Customer] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid, enter_date, modified_date, posting_date
@@ -444,6 +470,12 @@ private object SQL {
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
         FROM supplier  WHERE modelid = $modelid AND COMPANY = ${company} ORDER BY  id ASC
+         """.query
+
+    def getByIBAN(iban: String, company: String): Query0[Supplier] = sql"""
+        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
+             , C.IBAN, VATCODE, C.COMPANY, C.modelid,  enter_date, modified_date, posting_date
+        FROM supplier C, BankAccount C WHERE B.iban =${iban} AND C.id = B.owner AND C.COMPANY = ${company} ORDER BY  C.id ASC
          """.query
 
     def list(company: String): Query0[Supplier] = sql"""
@@ -654,6 +686,11 @@ private object SQL {
         FROM bankstatement WHERE id = $id.toLong ORDER BY  id ASC
      """.query
 
+    def getBy(id: Long): Query0[BankStatement] = sql"""SELECT ID, DEPOSITOR, POSTINGDATE,
+         VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
+         , INFO,COMPANY,COMPANYIBAN, POSTED, modelid
+        FROM bankstatement WHERE id = $id ORDER BY  id ASC
+     """.query
     def getByModelId(modelid: Int, company: String): Query0[BankStatement] = sql"""
         SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
             ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, modelid
