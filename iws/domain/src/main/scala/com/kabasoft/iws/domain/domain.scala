@@ -751,19 +751,6 @@ object Journal {
     )
 }
 
-/*
-final case  class BankStatement (auftragskonto:String,
-                                 buchungstag:String,
-                                 valutadatum:String,
-                                 buchungstext:String,
-                                 verwendungszweck:String,
-                                 beguenstigter:String,
-                                 kontonummer:String,
-                                 blz:String,
-                                 betrag:String,
-                                 waehrung:String,
-                                 info:String, modelId:Int=999) */
-
 final case class BankStatement(
   bid: Long,
   depositor: String,
