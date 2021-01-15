@@ -3,6 +3,7 @@ package com.kabasoft.iws.repository.doobie
 import java.time.Instant
 
 import cats._
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits._
 import doobie.ConnectionIO
@@ -11,13 +12,7 @@ import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.{
-  Journal => DJournal,
-  PeriodicAccountBalance => DPAC,
-  BankStatement => BS,
-  FinancialsTransaction,
-  FinancialsTransactionDetails => FTDetails
-}
+import com.kabasoft.iws.domain.{FinancialsTransaction, Journal => DJournal, PeriodicAccountBalance => DPAC}
 import com.kabasoft.iws.service.Service
 import com.kabasoft.iws.repository.doobie.SQLPagination._
 import com.kabasoft.iws.domain.PeriodicAccountBalance.pacMonoid
@@ -68,96 +63,141 @@ case class BankService[F[_]: Sync](transactor: Transactor[F]) extends Service[F,
 
 }
 case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, BankStatement] {
+
+  import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails => FTDetails}
+
   def insert(items: List[BankStatement]) = {
     println("Data loaded!!!!" + SQL.BankStatement.create(items(0)).sql)
     getXX(SQL.BankStatement.create, items).sequence.transact(transactor)
   }
-  //def insert(items: List[BankStatement])=(for {
-  //  bs_created <- items.traverse(create(_).run)
-  //} yield bs_created).transact(transactor)
-  //SQL.BankStatement.insertSQL.updateMany(items).transact(transactor)
+
   def create(item: BankStatement): F[Int] = SQL.BankStatement.create(item).run.transact(transactor)
+
   def delete(id: String, company: String): F[Int] = SQL.BankStatement.delete(id, company).run.transact(transactor)
+
   def list(from: Int, until: Int, company: String): F[List[BankStatement]] =
     paginate(until - from, from)(SQL.BankStatement.list(company)).to[List].transact(transactor)
+
   def getBy(id: String, company: String): F[Option[BankStatement]] =
     SQL.BankStatement.getBy(id, company).option.transact(transactor)
+
   def findSome(from: Int, until: Int, company: String, model: String*): F[List[BankStatement]] =
     paginate(until - from, from)(SQL.BankStatement.findSome(company, model: _*)).to[List].transact(transactor)
+
   def getByModelId(modelid: Int, from: Int, until: Int, company: String): F[List[BankStatement]] =
     paginate(until - from, from)(SQL.BankStatement.getByModelId(modelid, company)).to[List].transact(transactor)
+
   def update(models: BankStatement, company: String): F[List[Int]] =
     getXX(SQL.BankStatement.update, List(models), company).sequence.transact(transactor)
 
-  def postAll(ids: List[Long]): F[List[Int]] =
+  def postAll(ids: List[Long], company: String): F[List[Int]] =
     (for {
-      bankStatements <- ids.traverse(SQL.BankStatement.getBy(_).unique)
+      comp <- SQL.Company.getBy(company, company).unique
+      paymentBS <- SQL.BankStatement
+        .getPayment(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)))
+        .to[List]
+      settlementBS <- SQL.BankStatement
+        .getSettlement(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)))
+        .to[List]
+      payment <- paymentBS.traverse(createFTX(_, comp))
+      settlement <- settlementBS.traverse(createFT(_, comp))
 
-      paiements <- bankStatements.filter(_.posted == false).traverse(createPaiment(_))
-      settlments <- bankStatements.filter(_.posted == false).traverse(createSettlement(_))
-    } yield paiements ++ settlments).transact(transactor)
+      settlementTransactions = settlement.sequence.getOrElse(List.empty[FinancialsTransaction])
+      paymentTransactions = payment.sequence.getOrElse(List.empty[FinancialsTransaction])
+      posted <- (settlementBS ++ paymentBS)
+        .map(_.copy(posted = true))
+        .traverse(bs => SQL.BankStatement.update(bs, bs.company).run)
+      created <- (paymentTransactions ++ settlementTransactions).traverse(SQL.FinancialsTransaction.create2(_))
+    } yield created.flatten ++ posted).transact(transactor)
 
-  def createPaiment(bs: BS): ConnectionIO[Int] =
+  private[this] def createFTX(bs: BankStatement, company: Company): ConnectionIO[Option[FinancialsTransaction]] =
     for {
-      company <- SQL.Company.getBy(bs.company, bs.company).unique
-      suppliers <- SQL.Supplier.getByIBAN(bs.accountno, bs.company).unique
-      ftr_created <- SQL.FinancialsTransaction.create(createFTX(bs, suppliers, company.bankAcc)).run
-    } yield ftr_created
-  def createSettlement(bs: BS): ConnectionIO[Int] =
+      supplier <- SQL.Supplier.getByIBAN(bs.accountno, bs.company).option
+    } yield getFtr4Supplier(bs, supplier, company)
+
+  private[this] def createFT(bs: BankStatement, company: Company): ConnectionIO[Option[FinancialsTransaction]] =
     for {
-      company <- SQL.Company.getBy(bs.company, bs.company).unique
-      customers <- SQL.Customer.getByIBAN(bs.accountno, bs.company).unique
-      ftr_created <- SQL.FinancialsTransaction.create(createFT(bs, customers, company.bankAcc)).run
-    } yield ftr_created
-
-  private[this] def createFT(bs: BankStatement, c: Customer, bankAccId: String): FinancialsTransaction = {
-    val date = Instant.now()
-    val period = common.getPeriod(Instant.now())
-    val l =
-      FTDetails(-1L, -1L, bankAccId, true, c.account, bs.amount, bs.valuedate, bs.postingtext, bs.currency, bs.company)
-    FinancialsTransaction(
-      -1L,
-      -1L,
-      "100",
-      c.account,
-      bs.valuedate,
-      date,
-      date,
-      period,
-      false,
-      122,
-      bs.company,
-      bs.purpose,
-      0,
-      0,
-      List(l)
-    )
-  }
-
-  private[this] def createFTX(bs: BankStatement, s: Supplier, bankAccId: String): FinancialsTransaction = {
-    val date = Instant.now()
-    val period = common.getPeriod(Instant.now())
-    val l =
-      FTDetails(-1L, -1L, s.oaccount, true, bankAccId, bs.amount, bs.valuedate, bs.purpose, bs.currency, bs.company)
-    FinancialsTransaction(
-      -1L,
-      -1L,
-      "100",
-      s.account,
-      bs.valuedate,
-      date,
-      date,
-      period,
-      false,
-      122,
-      bs.company,
-      bs.purpose,
-      0,
-      0,
-      List(l)
-    )
-  }
-
+      customer <- SQL.Customer.getByIBAN(bs.accountno, bs.company).option
+    } yield getFtr4Customer(bs, customer, company)
+  def getFtr4Supplier(
+    bs: BankStatement,
+    supplier: Option[Supplier],
+    company: Company
+  ): Option[FinancialsTransaction] =
+    supplier.map(s => {
+      val date = Instant.now()
+      val period = common.getPeriod(Instant.now())
+      val l =
+        FTDetails(
+          -1L,
+          -1L,
+          s.oaccount,
+          true,
+          company.bankAcc,
+          bs.amount,
+          bs.valuedate,
+          bs.purpose,
+          bs.currency,
+          bs.company
+        )
+      FinancialsTransaction(
+        -1L,
+        bs.bid,
+        "100",
+        s.account,
+        bs.valuedate,
+        date,
+        date,
+        period,
+        false,
+        114,
+        bs.company,
+        bs.purpose,
+        0,
+        0,
+        List(l)
+      )
+    })
+  def getFtr4Customer(
+    bs: BankStatement,
+    customer: Option[Customer],
+    //id: Long,
+    company: Company
+  ): Option[FinancialsTransaction] =
+    customer.map(s => {
+      val date = Instant.now()
+      val period = common.getPeriod(Instant.now())
+      val l =
+        FTDetails(
+          -1L,
+          -1L,
+          company.bankAcc,
+          true,
+          s.oaccount,
+          bs.amount,
+          bs.valuedate,
+          bs.purpose,
+          bs.currency,
+          bs.company
+        )
+      FinancialsTransaction(
+        -1L,
+        bs.bid,
+        "100",
+        s.account,
+        bs.valuedate,
+        date,
+        date,
+        period,
+        false,
+        114,
+        bs.company,
+        bs.purpose,
+        0,
+        0,
+        List(l)
+      )
+    })
 }
 case class MasterfileService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Masterfile] {
   def create(item: Masterfile): F[Int] = SQL.Masterfile.create(item).run.transact(transactor)

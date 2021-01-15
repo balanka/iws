@@ -26,7 +26,12 @@ class BankStatementEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] 
         created <- service.create(masterfile)
         resp <- Created(created.asJson)
       } yield resp
-
+    case req @ PATCH -> Root / "post" asAuthed user =>
+      for {
+        ids <- req.request.decodeJson[List[Long]]
+        updated <- service.postAll(ids, user.company)
+        response <- Ok(updated.asJson)
+      } yield response
     case DELETE -> Root / id asAuthed user =>
       service.delete(id, user.company) *> Ok()
     case req @ PATCH -> Root asAuthed user =>

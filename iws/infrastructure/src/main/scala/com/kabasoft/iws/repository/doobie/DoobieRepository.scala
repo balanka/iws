@@ -1,11 +1,15 @@
 package com.kabasoft.iws.repository.doobie
 
+import cats.data.NonEmptyList
+import cats.implicits._
+import doobie.ConnectionIO
 import doobie.implicits._
 import doobie.util.query.Query0
 import doobie.util.update.Update0
 import com.kabasoft.iws.domain.Account.Account_Type
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
+import doobie.Fragments
 
 trait Repository[-A, B] {
   def create(item: A): Update0
@@ -160,22 +164,30 @@ private object SQL {
      (${item.id}, ${item.name}, ${item.description}
     , ${item.modelid} )""".update
 
+    /*
+    def getBy2(ids: List[Long]): Query0[Company] = sql"""
+    select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
+     , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
+     ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
+     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+     FROM company WHERE id = $ids[0].id """.query
+
+     */
+
     def getBy(id: String, company: String): Query0[Company] = sql"""
     select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
      , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
-     FROM company C
-    WHERE C.id = $id  ORDER BY  C.id ASC""".query
+     FROM company WHERE id = $id """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Company] = sql"""
       select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
      , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
-      FROM company C
-   WHERE C.modelid = $modelid AND C.ID=${company} ORDER BY  C.id ASC
-         """.query
+      FROM company
+   WHERE modelid = $modelid AND ID=${company}  """.query
 
     def findSome(company: String, model: String*): Query0[Company] = sql"""
      select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
@@ -191,7 +203,7 @@ private object SQL {
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
      , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
    FROM company C
-    WHERE  C.ID=${company} ORDER BY C.id  ASC
+    WHERE  ID=${company} ORDER BY id  ASC
   """.query
 
     def delete(id: String, company: String): Update0 =
@@ -427,7 +439,7 @@ private object SQL {
     def getByIBAN(iban: String, company: String): Query0[Customer] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, REVENUE_ACCOUNT
         , C.IBAN, VATCODE, C.COMPANY, C.modelid,  enter_date, modified_date, posting_date
-        FROM customer C, BankAccount C WHERE B.iban =${iban} AND C.id = B.owner AND C.COMPANY = ${company} ORDER BY  C.id ASC
+        FROM customer C, BankAccount B WHERE B.iban =${iban} AND C.id = B.owner AND C.COMPANY = ${company} ORDER BY  C.id ASC
          """.query
 
     def list(company: String): Query0[Customer] = sql"""
@@ -473,10 +485,19 @@ private object SQL {
          """.query
 
     def getByIBAN(iban: String, company: String): Query0[Supplier] = sql"""
-        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
-             , C.IBAN, VATCODE, C.COMPANY, C.modelid,  enter_date, modified_date, posting_date
-        FROM supplier C, BankAccount C WHERE B.iban =${iban} AND C.id = B.owner AND C.COMPANY = ${company} ORDER BY  C.id ASC
+        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,CHARGE_ACCOUNT
+             , S.IBAN, VATCODE, S.COMPANY, S.modelid,  enter_date, modified_date, posting_date
+        FROM supplier S, BankAccount B WHERE B.iban =${iban} AND S.id = B.owner AND S.COMPANY = ${company} ORDER BY  S.id ASC
          """.query
+
+    /*
+    def getByIBAN2(bs: List[BankStatement]): Query0[Supplier] = sql"""
+        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,CHARGE_ACCOUNT
+             , S.IBAN, VATCODE, S.COMPANY, S.modelid,  enter_date, modified_date, posting_date
+        FROM supplier S, BankAccount B WHERE B.iban =${bs.accountno} AND S.id = B.owner AND S.COMPANY = ${bs.company} ORDER BY  S.id ASC
+         """.query
+
+     */
 
     def list(company: String): Query0[Supplier] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
@@ -546,12 +567,25 @@ private object SQL {
   }
   object FinancialsTransaction extends Repository[FinancialsTransaction, FinancialsTransaction_Type2] {
 
-    def create(model: FinancialsTransaction): Update0 =
+    def sq(model: FinancialsTransactionDetails, transid: Long) =
+      sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY) VALUES
+       (nextval('details_compta_id_seq'), ${transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
+      , ${model.duedate}, ${model.text},  ${model.currency}, ${model.company} )""".update
+
+    //def ID: Query0[Long] = sql""" SELECT NEXTVAL('master_compta_id_seq') """.query[Long]
+    def create(model: FinancialsTransaction) =
       sql"""INSERT INTO master_compta (ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
             COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT ) VALUES
-          (NEXTVAL('master_compta_id_seq'), ${model.oid}, ${model.costcenter}, ${model.account},${model.transdate},
+          (${model.tid}, ${model.oid}, ${model.costcenter}, ${model.account},${model.transdate},
           ${model.postingdate}, ${model.enterdate}, ${model.period}, ${model.posted}, ${model.modelid},
          ${model.company}, ${model.text},  ${model.typeJournal},  ${model.file_content} ) """.update
+
+    def create2(model: FinancialsTransaction): ConnectionIO[List[Int]] =
+      for {
+        transid <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
+        trs <- create(model.copy(tid = transid)).run
+        lines <- model.lines.traverse(sq(_, transid).run)
+      } yield (lines ++ List(trs))
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
       val id = idx.toLong
@@ -681,7 +715,7 @@ private object SQL {
      , ${item.info}, ${item.company}, ${item.companyIban}, ${item.posted}, ${item.modelid} )""".update
 
     def getBy(id: String, company: String): Query0[BankStatement] = sql"""SELECT ID, DEPOSITOR, POSTINGDATE,
-         VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
+         VALUEDATE, POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
          , INFO,COMPANY,COMPANYIBAN, POSTED, modelid
         FROM bankstatement WHERE id = $id.toLong ORDER BY  id ASC
      """.query
@@ -689,8 +723,24 @@ private object SQL {
     def getBy(id: Long): Query0[BankStatement] = sql"""SELECT ID, DEPOSITOR, POSTINGDATE,
          VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
          , INFO,COMPANY,COMPANYIBAN, POSTED, modelid
-        FROM bankstatement WHERE id = $id ORDER BY  id ASC
-     """.query
+        FROM bankstatement WHERE id = $id """.query
+
+    def getPayment(ids: NonEmptyList[Long]): Query0[BankStatement] = {
+      val q = fr"""SELECT ID, DEPOSITOR, POSTINGDATE,
+         VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
+         , INFO,COMPANY,COMPANYIBAN, POSTED, modelid
+        FROM bankstatement WHERE   POSTED =false AND AMOUNT <0   AND """ ++ Fragments.in(fr"id", ids)
+      q.query
+    }
+
+    def getSettlement(ids: NonEmptyList[Long]): Query0[BankStatement] = {
+      val q = fr"""SELECT ID, DEPOSITOR, POSTINGDATE,
+         VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY
+         , INFO,COMPANY,COMPANYIBAN, POSTED, modelid
+        FROM bankstatement WHERE   POSTED =false AND AMOUNT >0   AND """ ++ Fragments.in(fr"id", ids)
+      q.query
+    }
+
     def getByModelId(modelid: Int, company: String): Query0[BankStatement] = sql"""
         SELECT ID, DEPOSITOR, POSTINGDATE, VALUEDATE,POSTINGTEXT, PURPOSE,BENEFICIARY,
             ACCOUNTNO, BANKCODE, AMOUNT, CURRENCY, INFO,COMPANY,COMPANYIBAN, POSTED, modelid
@@ -716,8 +766,8 @@ private object SQL {
 
     def update(item: BankStatement, company: String): Update0 =
       sql"""Update bankstatement set POSTINGTEXT=${item.postingtext} , PURPOSE=${item.purpose}
-    ,  ACCOUNTNO= ${item.accountno}, BANKCODE=${item.bankCode}, INFO=${item.info}
-    ,  COMPANYIBAN=${item.companyIban} where id =${item.id} AND COMPANY = ${company}""".update
+    ,  ACCOUNTNO= ${item.accountno}, BANKCODE=${item.bankCode}, INFO=${item.info}, POSTED=${item.posted}
+    ,  COMPANYIBAN=${item.companyIban} where id =${item.bid} AND COMPANY = ${company}""".update
 
   }
   object Vat extends Repository[Vat, Vat] {
