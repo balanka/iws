@@ -66,10 +66,7 @@ case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends S
 
   import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails => FTDetails}
 
-  def insert(items: List[BankStatement]) = {
-    println("Data loaded!!!!" + SQL.BankStatement.create(items(0)).sql)
-    getXX(SQL.BankStatement.create, items).sequence.transact(transactor)
-  }
+  def insert(items: List[BankStatement]) = getXX(SQL.BankStatement.create, items).sequence.transact(transactor)
 
   def create(item: BankStatement): F[Int] = SQL.BankStatement.create(item).run.transact(transactor)
 
