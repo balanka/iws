@@ -15,6 +15,7 @@ trait Repository[-A, B] {
   def create(item: A): Update0
   def create(models: List[A]): List[Update0] = models.map(create)
   def delete(item: String, company: String): Update0
+  def delete(items: List[String], company: String): List[Update0]= items.map(delete(_, company))
   def list(company: String): Query0[B]
   def getBy(id: String, company: String): Query0[B]
   def getByModelId(modelid: Int, company: String): Query0[B]
@@ -490,15 +491,6 @@ private object SQL {
         FROM supplier S, BankAccount B WHERE B.iban =${iban} AND S.id = B.owner AND S.COMPANY = ${company} ORDER BY  S.id ASC
          """.query
 
-    /*
-    def getByIBAN2(bs: List[BankStatement]): Query0[Supplier] = sql"""
-        SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,CHARGE_ACCOUNT
-             , S.IBAN, VATCODE, S.COMPANY, S.modelid,  enter_date, modified_date, posting_date
-        FROM supplier S, BankAccount B WHERE B.iban =${bs.accountno} AND S.id = B.owner AND S.COMPANY = ${bs.company} ORDER BY  S.id ASC
-         """.query
-
-     */
-
     def list(company: String): Query0[Supplier] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
      , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
@@ -546,8 +538,6 @@ private object SQL {
      SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE COMPANY = ${company} ORDER BY id  ASC
   """.query
-
-    def delete(ids: List[String], company: String): List[Update0] = ids.map(delete(_, company))
 
     def delete(idx: String, company: String): Update0 =
       sql"""DELETE FROM details_compta WHERE ID = ${idx.toLong} AND COMPANY = ${company} """.update
