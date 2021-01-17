@@ -522,6 +522,11 @@ private object SQL {
      SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC """.query
 
+    def getByTransId(transid:Long, company: String): Query0[FinancialsTransactionDetails] =
+     sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
+     FROM details_compta WHERE transid =${transid} AND COMPANY = ${company} """.query
+
+
     def findSome(company: String, model: String*): Query0[FinancialsTransactionDetails] = {
       val transid = model(0).toLong
       sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
@@ -557,7 +562,7 @@ private object SQL {
   }
   object FinancialsTransaction extends Repository[FinancialsTransaction, FinancialsTransaction_Type2] {
 
-    def sq(model: FinancialsTransactionDetails, transid: Long) =
+    def createDetails(model: FinancialsTransactionDetails, transid: Long) =
       sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY) VALUES
        (nextval('details_compta_id_seq'), ${transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
       , ${model.duedate}, ${model.text},  ${model.currency}, ${model.company} )""".update
@@ -574,7 +579,15 @@ private object SQL {
       for {
         transid <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
         trs <- create(model.copy(tid = transid)).run
-        lines <- model.lines.traverse(sq(_, transid).run)
+        lines <- model.lines.traverse(createDetails(_, transid).run)
+      } yield (lines ++ List(trs))
+
+    def create3(model: FinancialsTransaction): ConnectionIO[List[Int]] =
+      for {
+        transid <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
+        trs <- create(model.copy(tid = transid)).run
+        lines_ <- SQL.FinancialsTransactionDetails.getByTransId(model.tid,model.company).to[List]
+        lines <- lines_.traverse(createDetails(_, transid).run)
       } yield (lines ++ List(trs))
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
@@ -634,6 +647,13 @@ private object SQL {
         FinancialsTransactionDetails.update(m.lines, company);
         update(m, company)
       })
+    }
+
+    def getTransaction4Ids(ids: NonEmptyList[Long], company: String): Query0[FinancialsTransaction_Type] = {
+     val q = fr"""SELECT TID, OID, COSTCENTER, ACCOUNT, TRANSDATE , POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid
+        , COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
+        FROM master_compta  WHERE COMPANY = ${company} AND """ ++ Fragments.in(fr"tid", ids)
+      q.query
     }
 
     def update2(model: FinancialsTransaction, company: String): Update0 = sql"""Update master_compta

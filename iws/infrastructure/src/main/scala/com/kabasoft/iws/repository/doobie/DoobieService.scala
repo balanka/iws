@@ -536,6 +536,16 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       .map(FinancialsTransaction.apply)
       .transact(transactor)
 
+  def copyAll(ids: List[Long], modelId:Int, company: String): F[List[Int]] =
+    (for {
+      queries <- SQL.FinancialsTransaction
+        .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
+        .to[List]
+      transactions = queries.map(ftr => FinancialsTransaction.apply(ftr).copy(modelid = modelId))
+      copied <- transactions.traverse(SQL.FinancialsTransaction.create3(_))
+
+    } yield copied.flatten).transact(transactor)
+
   def postAll(models: List[FinancialsTransaction], company: String): F[List[Int]] =
     (for {
       all <- models.filter(_.posted == false).traverse(debitOrCreditPACAll(_, company))
