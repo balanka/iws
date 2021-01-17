@@ -609,7 +609,8 @@ final case class FinancialsTransaction(
   text: String = "",
   typeJournal: Int = 0,
   file_content: Int = 0,
-  lines: List[FinancialsTransactionDetails] = Nil
+  lines: List[FinancialsTransactionDetails] = Nil,
+  copyFlag: Boolean = false
 ) extends IWS {
   def id = tid.toString
   def month: String = common.getMonthAsString(transdate)
