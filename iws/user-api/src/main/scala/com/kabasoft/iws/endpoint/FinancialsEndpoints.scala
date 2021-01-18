@@ -8,7 +8,7 @@ import com.kabasoft.iws.error.json.ErrorsJson
 import com.kabasoft.iws.pagination.Pagination._
 import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.repository.doobie.{FinancialsTransactionService, User}
-import com.kabasoft.iws.domain.FinancialsTransaction
+import com.kabasoft.iws.domain.{FinancialsTransaction, Param}
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.HttpRoutes
@@ -39,6 +39,14 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       for {
         transaction <- req.request.decodeJson[List[FinancialsTransaction]]
         updated <- service.postAll(transaction, user.company)
+        response <- Ok(updated.asJson)
+      } yield response
+    case req @ PATCH -> Root / "copy" asAuthed user =>
+      for {
+        params <- req.request.decodeJson[List[Param]]
+        ids:List[Long] = params.map(p=>p.id)
+        modelid:Int = params.headOption.getOrElse(Param(-1L,-1)).modelid
+        updated <- service.copyAll(ids, modelid, user.company)
         response <- Ok(updated.asJson)
       } yield response
     case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>

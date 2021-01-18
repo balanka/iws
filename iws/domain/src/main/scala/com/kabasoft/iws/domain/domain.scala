@@ -66,6 +66,7 @@ object common {
 
     }
 }
+case class Param (id:Long, modelid:Int)
 case class MasterfileId(value: String) extends AnyVal
 sealed trait IWS {
   def id: String

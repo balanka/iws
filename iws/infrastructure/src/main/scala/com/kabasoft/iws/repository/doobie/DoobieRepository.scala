@@ -165,16 +165,6 @@ private object SQL {
      (${item.id}, ${item.name}, ${item.description}
     , ${item.modelid} )""".update
 
-    /*
-    def getBy2(ids: List[Long]): Query0[Company] = sql"""
-    select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
-     , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
-     ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
-     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
-     FROM company WHERE id = $ids[0].id """.query
-
-     */
-
     def getBy(id: String, company: String): Query0[Company] = sql"""
     select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
@@ -425,6 +415,12 @@ private object SQL {
      FROM customer WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
+    def getByAccount(accountId: String, company: String): Query0[Customer] = sql"""
+     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
+             , IBAN, VATCODE, COMPANY,modelid,  enter_date, modified_date, posting_date
+     FROM customer WHERE ACCOUNT = $accountId AND COMPANY = ${company} ORDER BY  id ASC
+     """.query
+
     def getByModelId(modelid: Int, company: String): Query0[Customer] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,  enter_date, modified_date, posting_date
@@ -477,6 +473,13 @@ private object SQL {
              , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
      FROM supplier
      WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC
+     """.query
+
+    def getByAccount(accountId: String, company: String): Query0[Supplier] = sql"""
+     SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
+             , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
+     FROM supplier
+     WHERE ACCOUNT = $accountId AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Supplier] = sql"""
@@ -567,7 +570,6 @@ private object SQL {
        (nextval('details_compta_id_seq'), ${transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
       , ${model.duedate}, ${model.text},  ${model.currency}, ${model.company} )""".update
 
-    //def ID: Query0[Long] = sql""" SELECT NEXTVAL('master_compta_id_seq') """.query[Long]
     def create(model: FinancialsTransaction) =
       sql"""INSERT INTO master_compta (ID, OID, COSTCENTER, ACCOUNT, TRANSDATE, POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid,
             COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT ) VALUES
@@ -584,10 +586,17 @@ private object SQL {
 
     def create3(model: FinancialsTransaction): ConnectionIO[List[Int]] =
       for {
-        transid <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
-        trs <- create(model.copy(tid = transid)).run
+        transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
+        trs <- create(model.copy(tid = transId)).run
         lines_ <- SQL.FinancialsTransactionDetails.getByTransId(model.tid,model.company).to[List]
-        lines <- lines_.traverse(createDetails(_, transid).run)
+        customer <-  SQL.Customer.getByAccount(model.account,model.company).to[List]
+        supplier <-  SQL.Supplier.getByAccount(model.account, model.company).option
+        mappedLines =  if (model.modelid ==112) {
+          lines_.map( line =>line.copy(account=supplier.headOption.map(_.oaccount).getOrElse("-1"), oaccount=line.account))
+        } else {
+          lines_.map( line =>line.copy(account=line.oaccount, oaccount=customer.headOption.map(_.oaccount).getOrElse("-1")))
+        }
+        lines <- mappedLines.traverse(createDetails(_, transId).run)
       } yield (lines ++ List(trs))
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
@@ -650,9 +659,9 @@ private object SQL {
     }
 
     def getTransaction4Ids(ids: NonEmptyList[Long], company: String): Query0[FinancialsTransaction_Type] = {
-     val q = fr"""SELECT TID, OID, COSTCENTER, ACCOUNT, TRANSDATE , POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid
+     val q = fr"""SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE , POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid
         , COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
-        FROM master_compta  WHERE COMPANY = ${company} AND """ ++ Fragments.in(fr"tid", ids)
+        FROM master_compta  WHERE COMPANY = ${company} AND """ ++ Fragments.in(fr"id", ids)
       q.query
     }
 

@@ -158,7 +158,6 @@ case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends S
   def getFtr4Customer(
     bs: BankStatement,
     customer: Option[Customer],
-    //id: Long,
     company: Company
   ): Option[FinancialsTransaction] =
     customer.map(s => {
@@ -541,10 +540,12 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       queries <- SQL.FinancialsTransaction
         .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
         .to[List]
-      transactions = queries.map(ftr => FinancialsTransaction.apply(ftr).copy(modelid = modelId))
+      transactions = queries.map(ftr => FinancialsTransaction.apply(ftr).copy(modelid = if(modelId==114) 112 else 122,
+         oid=ftr._1, enterdate=Instant.now()))
       copied <- transactions.traverse(SQL.FinancialsTransaction.create3(_))
 
     } yield copied.flatten).transact(transactor)
+
 
   def postAll(models: List[FinancialsTransaction], company: String): F[List[Int]] =
     (for {
