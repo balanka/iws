@@ -37,15 +37,16 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       } yield response
     case req @ PATCH -> Root / "post" asAuthed user =>
       for {
-        transaction <- req.request.decodeJson[List[FinancialsTransaction]]
-        updated <- service.postAll(transaction, user.company)
+        //transaction <- req.request.decodeJson[List[FinancialsTransaction]]
+        ids <- req.request.decodeJson[List[Long]]
+        updated <- service.postAll(ids, user.company)
         response <- Ok(updated.asJson)
       } yield response
     case req @ PATCH -> Root / "copy" asAuthed user =>
       for {
         params <- req.request.decodeJson[List[Param]]
-        ids:List[Long] = params.map(p=>p.id)
-        modelid:Int = params.headOption.getOrElse(Param(-1L,-1)).modelid
+        ids: List[Long] = params.map(p => p.id)
+        modelid: Int = params.headOption.getOrElse(Param(-1L, -1)).modelid
         updated <- service.copyAll(ids, modelid, user.company)
         response <- Ok(updated.asJson)
       } yield response

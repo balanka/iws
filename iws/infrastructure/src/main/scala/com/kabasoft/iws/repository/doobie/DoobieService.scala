@@ -490,15 +490,10 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
 
     val splitted = model.lines.partition(insertPredicate(_))
     val splitted2 = splitted._2.partition(deletePredicate(_))
-    println("model: " + model)
-    println("splitted1: " + splitted)
-    println("splitted2: " + splitted2)
     val newLines = splitted._1
     val deletedLineIds = splitted2._1.map(line => line.id)
     val oldLines = splitted2._2
-    println("INSERT->" + newLines);
-    println("DELETE->" + deletedLineIds);
-    println("OLD->" + oldLines);
+    //println("INSERT->" + newLines);println("DELETE->" + deletedLineIds);println("OLD->" + oldLines);
     val result: List[ConnectionIO[Int]] =
       getXX(SQL.FinancialsTransactionDetails.update, oldLines, company) ++
         getXX(SQL.FinancialsTransactionDetails.delete, deletedLineIds, company) ++
@@ -535,24 +530,34 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       .map(FinancialsTransaction.apply)
       .transact(transactor)
 
-  def copyAll(ids: List[Long], modelId:Int, company: String): F[List[Int]] =
+  def copyAll(ids: List[Long], modelId: Int, company: String): F[List[Int]] =
     (for {
       queries <- SQL.FinancialsTransaction
         .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
         .to[List]
-      transactions = queries.map(ftr => FinancialsTransaction.apply(ftr).copy(modelid = if(modelId==114) 112 else 122,
-         oid=ftr._1, enterdate=Instant.now()))
+      transactions = queries.map(
+        ftr =>
+          FinancialsTransaction
+            .apply(ftr)
+            .copy(modelid = if (modelId == 114) 112 else 122, oid = ftr._1, enterdate = Instant.now())
+      )
       copied <- transactions.traverse(SQL.FinancialsTransaction.create3(_))
 
     } yield copied.flatten).transact(transactor)
 
-
-  def postAll(models: List[FinancialsTransaction], company: String): F[List[Int]] =
+  def postAll(ids: List[Long], company: String): F[List[Int]] =
     (for {
-      all <- models.filter(_.posted == false).traverse(debitOrCreditPACAll(_, company))
+      queries <- SQL.FinancialsTransaction
+        .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
+        .to[List]
+
+      all <- queries
+        .map(ftr => FinancialsTransaction.apply(ftr))
+        .filter(_.posted == false)
+        .traverse(debitOrCreditPACAll(_, company))
     } yield all.flatten).transact(transactor)
 
-  def post(model: FinancialsTransaction, company: String): F[List[Int]] = postAll(List(model), company)
+  def post(model: FinancialsTransaction, company: String): F[List[Int]] = postAll(List(model.tid), company)
 
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ConnectionIO[List[Int]] =
     (

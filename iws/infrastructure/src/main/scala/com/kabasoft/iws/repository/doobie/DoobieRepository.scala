@@ -15,7 +15,7 @@ trait Repository[-A, B] {
   def create(item: A): Update0
   def create(models: List[A]): List[Update0] = models.map(create)
   def delete(item: String, company: String): Update0
-  def delete(items: List[String], company: String): List[Update0]= items.map(delete(_, company))
+  def delete(items: List[String], company: String): List[Update0] = items.map(delete(_, company))
   def list(company: String): Query0[B]
   def getBy(id: String, company: String): Query0[B]
   def getByModelId(modelid: Int, company: String): Query0[B]
@@ -525,10 +525,9 @@ private object SQL {
      SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC """.query
 
-    def getByTransId(transid:Long, company: String): Query0[FinancialsTransactionDetails] =
-     sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
+    def getByTransId(transid: Long, company: String): Query0[FinancialsTransactionDetails] =
+      sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE transid =${transid} AND COMPANY = ${company} """.query
-
 
     def findSome(company: String, model: String*): Query0[FinancialsTransactionDetails] = {
       val transid = model(0).toLong
@@ -588,13 +587,17 @@ private object SQL {
       for {
         transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
         trs <- create(model.copy(tid = transId)).run
-        lines_ <- SQL.FinancialsTransactionDetails.getByTransId(model.tid,model.company).to[List]
-        customer <-  SQL.Customer.getByAccount(model.account,model.company).to[List]
-        supplier <-  SQL.Supplier.getByAccount(model.account, model.company).option
-        mappedLines =  if (model.modelid ==112) {
-          lines_.map( line =>line.copy(account=supplier.headOption.map(_.oaccount).getOrElse("-1"), oaccount=line.account))
+        lines_ <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
+        customer <- SQL.Customer.getByAccount(model.account, model.company).to[List]
+        supplier <- SQL.Supplier.getByAccount(model.account, model.company).option
+        mappedLines = if (model.modelid == 112) {
+          lines_.map(
+            line => line.copy(account = supplier.headOption.map(_.oaccount).getOrElse("-1"), oaccount = line.account)
+          )
         } else {
-          lines_.map( line =>line.copy(account=line.oaccount, oaccount=customer.headOption.map(_.oaccount).getOrElse("-1")))
+          lines_.map(
+            line => line.copy(account = line.oaccount, oaccount = customer.headOption.map(_.oaccount).getOrElse("-1"))
+          )
         }
         lines <- mappedLines.traverse(createDetails(_, transId).run)
       } yield (lines ++ List(trs))
@@ -659,7 +662,7 @@ private object SQL {
     }
 
     def getTransaction4Ids(ids: NonEmptyList[Long], company: String): Query0[FinancialsTransaction_Type] = {
-     val q = fr"""SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE , POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid
+      val q = fr"""SELECT ID, OID, COSTCENTER, ACCOUNT, TRANSDATE , POSTINGDATE, ENTERDATE, PERIOD, POSTED, modelid
         , COMPANY, HEADERTEXT, TYPE_JOURNAL, FILE_CONTENT
         FROM master_compta  WHERE COMPANY = ${company} AND """ ++ Fragments.in(fr"id", ids)
       q.query

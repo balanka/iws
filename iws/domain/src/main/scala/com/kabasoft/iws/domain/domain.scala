@@ -66,7 +66,7 @@ object common {
 
     }
 }
-case class Param (id:Long, modelid:Int)
+case class Param(id: Long, modelid: Int)
 case class MasterfileId(value: String) extends AnyVal
 sealed trait IWS {
   def id: String
@@ -610,8 +610,8 @@ final case class FinancialsTransaction(
   text: String = "",
   typeJournal: Int = 0,
   file_content: Int = 0,
-  lines: List[FinancialsTransactionDetails] = Nil,
-  copyFlag: Boolean = false
+  lines: List[FinancialsTransactionDetails] = Nil
+  //,copyFlag: Boolean = false
 ) extends IWS {
   def id = tid.toString
   def month: String = common.getMonthAsString(transdate)
