@@ -8,8 +8,10 @@ import doobie.util.query.Query0
 import doobie.util.update.Update0
 import com.kabasoft.iws.domain.Account.Account_Type
 import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.{FinancialsTransactionDetails => Details}
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
 import doobie.Fragments
+import java.time.Instant
 
 trait Repository[-A, B] {
   def create(item: A): Update0
@@ -514,34 +516,34 @@ private object SQL {
          where id =${model.id} AND COMPANY = ${company}""".update
 
   }
-  object FinancialsTransactionDetails extends Repository[FinancialsTransactionDetails, FinancialsTransactionDetails] {
+  object FinancialsTransactionDetails extends Repository[Details, Details] {
 
     def create(model: FinancialsTransactionDetails): Update0 =
       sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY) VALUES
      (nextval('details_compta_id_seq'), ${model.transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
     , ${model.duedate}, ${model.text},  ${model.currency}, ${model.company} )""".update
 
-    def getBy(id: String, company: String): Query0[FinancialsTransactionDetails] = sql"""
+    def getBy(id: String, company: String): Query0[Details] = sql"""
      SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC """.query
 
-    def getByTransId(transid: Long, company: String): Query0[FinancialsTransactionDetails] =
+    def getByTransId(transid: Long, company: String): Query0[Details] =
       sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE transid =${transid} AND COMPANY = ${company} """.query
 
-    def findSome(company: String, model: String*): Query0[FinancialsTransactionDetails] = {
+    def findSome(company: String, model: String*): Query0[Details] = {
       val transid = model(0).toLong
       sql"""SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta
-     WHERE TRANSID =${transid} AND COMPANY = ${company} ORDER BY  id ASC """.query[FinancialsTransactionDetails]
+     WHERE TRANSID =${transid} AND COMPANY = ${company} ORDER BY  id ASC """.query[Details]
     }
 
-    def getByModelId(modelid: Int, company: String): Query0[FinancialsTransactionDetails] = sql"""
+    def getByModelId(modelid: Int, company: String): Query0[Details] = sql"""
         SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
         FROM details_compta  WHERE modelid = $modelid AND COMPANY = ${company} ORDER BY  id ASC
          """.query
 
-    def list(company: String): Query0[FinancialsTransactionDetails] = sql"""
+    def list(company: String): Query0[Details] = sql"""
      SELECT ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT, DUEDATE, TEXT, CURRENCY, COMPANY,TERMS
      FROM details_compta WHERE COMPANY = ${company} ORDER BY id  ASC
   """.query
@@ -549,22 +551,24 @@ private object SQL {
     def delete(idx: String, company: String): Update0 =
       sql"""DELETE FROM details_compta WHERE ID = ${idx.toLong} AND COMPANY = ${company} """.update
 
-    def SQL_UPDATE(model: FinancialsTransactionDetails, company: String) = sql"""Update details_compta
+    def SQL_UPDATE(model: Details, company: String) = sql"""Update details_compta
      set TRANSID=${model.transid}, ACCOUNT=${model.account}, SIDE=${model.side}, OACCOUNT=${model.oaccount},
      AMOUNT=${model.amount}, DUEDATE=${model.duedate}, TEXT=${model.text},  CURRENCY=${model.currency}, COMPANY=${model.company}
      where id =${model.lid} AND COMPANY = ${company}"""
 
-    override def update(models: List[FinancialsTransactionDetails], company: String): List[Update0] =
+    override def update(models: List[Details], company: String): List[Update0] =
       models.map(update(_, company))
 
-    def update(model: FinancialsTransactionDetails, company: String): Update0 = sql"""Update details_compta
+    def update(model: Details, company: String): Update0 = sql"""Update details_compta
      set ACCOUNT=${model.account}, SIDE=${model.side}, OACCOUNT=${model.oaccount},
      AMOUNT=${model.amount}, DUEDATE=${model.duedate}, TEXT=${model.text},  CURRENCY=${model.currency}
      where id =${model.lid} AND COMPANY = ${company}""".update
   }
   object FinancialsTransaction extends Repository[FinancialsTransaction, FinancialsTransaction_Type2] {
 
-    def createDetails(model: FinancialsTransactionDetails, transid: Long) =
+    import com.kabasoft.iws.domain.common.{dummyCustomer, dummySupplier}
+    import com.kabasoft.iws.domain.FinancialsTransactionDetails.monoid
+    def createDetails(model: Details, transid: Long) =
       sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY) VALUES
        (nextval('details_compta_id_seq'), ${transid}, ${model.account}, ${model.side}, ${model.oaccount}, ${model.amount}
       , ${model.duedate}, ${model.text},  ${model.currency}, ${model.company} )""".update
@@ -583,24 +587,103 @@ private object SQL {
         lines <- model.lines.traverse(createDetails(_, transid).run)
       } yield (lines ++ List(trs))
 
-    def create3(model: FinancialsTransaction): ConnectionIO[List[Int]] =
+    def create3Supplier(model: FinancialsTransaction): ConnectionIO[List[Int]] =
       for {
         transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
-        trs <- create(model.copy(tid = transId)).run
-        lines_ <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
-        customer <- SQL.Customer.getByAccount(model.account, model.company).to[List]
-        supplier <- SQL.Supplier.getByAccount(model.account, model.company).option
-        mappedLines = if (model.modelid == 112) {
-          lines_.map(
-            line => line.copy(account = supplier.headOption.map(_.oaccount).getOrElse("-1"), oaccount = line.account)
-          )
-        } else {
-          lines_.map(
-            line => line.copy(account = line.oaccount, oaccount = customer.headOption.map(_.oaccount).getOrElse("-1"))
-          )
-        }
-        lines <- mappedLines.traverse(createDetails(_, transId).run)
-      } yield (lines ++ List(trs))
+         date = Instant.now()
+         periodx = com.kabasoft.iws.domain.common.getPeriod(date)
+          transaction <- SQL.FinancialsTransaction
+           .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
+          .run
+        lines_x <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
+        supplierList <- SQL.Supplier.getByAccount(model.account, model.company).to[List]
+        supplier = supplierList.headOption.getOrElse(dummySupplier)
+        supplierVat <- SQL.Vat.getBy(supplier.vatcode, model.company).to[List]
+        reducedLine1 = lines_x
+          .groupBy(lx => lx.transid)
+          .map({ case (_, v) => v.combineAll })
+          .toList
+        //.flatten
+        reducedLine = reducedLine1.reduce[Details](
+          (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
+        )
+        //amountS = reducedLine.amount
+        percentS = supplierVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
+        paymentAmount = reducedLine.amount * percentS
+        oaccountno = supplierVat.headOption.map(_.inputVatAccount).getOrElse("-1")
+        line1 = Details(
+          0,
+          transId,
+          oaccountno,
+          true,
+          reducedLine.account,
+          paymentAmount,
+          model.transdate,
+          model.text,
+          reducedLine.currency,
+          reducedLine.company
+        )
+
+        mappedLines = lines_x.map(
+          line =>
+            line.copy(
+              lid = 0,
+              transid = transId,
+              account = supplier.oaccount,
+              oaccount = line.account
+            )
+        )
+        line1created <- SQL.FinancialsTransactionDetails.create(line1).run
+        lines <- mappedLines.traverse(line => SQL.FinancialsTransactionDetails.create(line).run)
+      } yield List(line1created, transaction)++lines
+
+    def create3Customer(model: FinancialsTransaction): ConnectionIO[List[Int]] =
+      for {
+        transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
+          date = Instant.now()
+         periodx = com.kabasoft.iws.domain.common.getPeriod(date)
+         transaction <- SQL.FinancialsTransaction
+           .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
+           .run
+        lines_x <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
+        customerList <- SQL.Customer.getByAccount(model.account, model.company).to[List]
+        customer = customerList.headOption.getOrElse(dummyCustomer)
+        customerVat <- SQL.Vat.getBy(customer.vatcode, model.company).to[List]
+        reducedLine1 = lines_x
+          .groupBy(lx => lx.transid)
+          .map({ case (_, v) => v.combineAll })
+          .toList
+        //.flatten
+        reducedLine = reducedLine1.reduce[Details](
+          (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
+        )
+        percentC = customerVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
+        settlementAmount = reducedLine.amount * percentC
+        accountno = customerVat.headOption.map(_.outputVatAccount).getOrElse("-1")
+        line2 = Details(
+          0,
+          transId,
+          reducedLine.oaccount,
+          true,
+          accountno,
+          settlementAmount,
+          model.transdate,
+          model.text,
+          reducedLine.currency,
+          reducedLine.company
+        )
+        mappedLines = lines_x.map(
+          line =>
+            line.copy(
+              lid = 0,
+              transid = transId,
+              account = line.oaccount,
+              oaccount = customer.account
+            )
+        )
+        linecreated <- SQL.FinancialsTransactionDetails.create(line2).run
+        lines <- mappedLines.traverse(SQL.FinancialsTransactionDetails.create(_).run)
+      } yield List(linecreated, transaction)++lines
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
       val id = idx.toLong

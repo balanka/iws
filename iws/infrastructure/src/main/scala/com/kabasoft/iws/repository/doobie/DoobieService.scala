@@ -2,7 +2,6 @@ package com.kabasoft.iws.repository.doobie
 
 import java.time.Instant
 
-import cats._
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits._
@@ -90,11 +89,12 @@ case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends S
   def postAll(ids: List[Long], company: String): F[List[Int]] =
     (for {
       comp <- SQL.Company.getBy(company, company).unique
+
       paymentBS <- SQL.BankStatement
         .getPayment(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)))
         .to[List]
       settlementBS <- SQL.BankStatement
-        .getSettlement(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)))
+        .getPayment(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)))
         .to[List]
       payment <- paymentBS.traverse(createFTX(_, comp))
       settlement <- settlementBS.traverse(createFT(_, comp))
@@ -468,14 +468,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
 
   import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails => FTDetails}
   import com.kabasoft.iws.domain.PeriodicAccountBalance.pacMonoid
-
-  implicit val FinancialsTransactionDetailsMonoid: Monoid[FTDetails] =
-    new Monoid[FTDetails] {
-      def empty =
-        FTDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR", "1000")
-
-      def combine(m1: FTDetails, m2: FTDetails) = m2.copy(amount = m2.amount.+(m1.amount))
-    }
+  import com.kabasoft.iws.domain.FinancialsTransactionDetails.monoid
 
   def create(item: FinancialsTransaction): F[Int] = SQL.FinancialsTransaction.create(item).run.transact(transactor)
 
@@ -535,15 +528,29 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       queries <- SQL.FinancialsTransaction
         .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
         .to[List]
+      date = Instant.now()
+      periodx = com.kabasoft.iws.domain.common.getPeriod(date)
       transactions = queries.map(
         ftr =>
           FinancialsTransaction
             .apply(ftr)
-            .copy(modelid = if (modelId == 114) 112 else 122, oid = ftr._1, enterdate = Instant.now())
+            .copy(
+              modelid = if (modelId == 114) 112 else 122,
+              oid = ftr._1,
+              enterdate = date,
+              postingdate = date,
+              period = periodx
+            )
       )
-      copied <- transactions.traverse(SQL.FinancialsTransaction.create3(_))
+      // transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
+      payables <- transactions
+        .filter(m => m.modelid == 112)
+        .traverse(ftr => SQL.FinancialsTransaction.create3Customer(ftr))
+      receivables <- transactions
+        .filter(m => m.modelid == 122)
+        .traverse(ftr => SQL.FinancialsTransaction.create3Customer(ftr))
 
-    } yield copied.flatten).transact(transactor)
+    } yield payables.flatten ++ receivables.flatten).transact(transactor)
 
   def postAll(ids: List[Long], company: String): F[List[Int]] =
     (for {

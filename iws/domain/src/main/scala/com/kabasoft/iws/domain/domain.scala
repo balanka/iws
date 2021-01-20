@@ -65,6 +65,41 @@ object common {
         new Balance_Type(m1._1 + m2._1, m1._2 + m2._2, m1._3 + m2._3, m1._4 + m2._4)
 
     }
+
+  val dummyCustomer = Customer(
+    "-1",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy"
+  )
+  val dummySupplier = Supplier(
+    "-1",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy",
+    "dummy"
+  )
 }
 case class Param(id: Long, modelid: Int)
 case class MasterfileId(value: String) extends AnyVal
@@ -567,12 +602,12 @@ final case class FinancialsTransactionDetails(
 }
 object FinancialsTransactionDetails {
 
-    implicit val monoid: Monoid[FinancialsTransactionDetails] =
+  val EMPTY = FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR", "1000")
+  implicit val monoid: Monoid[FinancialsTransactionDetails] =
     new Monoid[FinancialsTransactionDetails] {
-      def empty =
-        FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR", "1000")
-
-      def combine(m1: FinancialsTransactionDetails, m2: FinancialsTransactionDetails) = m2.copy(amount = m2.amount.+(m1.amount))
+      def empty = EMPTY
+      def combine(m1: FinancialsTransactionDetails, m2: FinancialsTransactionDetails) =
+        m2.copy(amount = m2.amount.+(m1.amount))
     }
   type FinancialsTransactionDetails_Type =
     (Long, Long, String, Boolean, String, String, Instant, String, String, String)
@@ -625,7 +660,7 @@ final case class FinancialsTransaction(
   def month: String = common.getMonthAsString(transdate)
   def year: Int = common.getYear(transdate)
   def getPeriod = common.getPeriod(transdate)
-  def total = lines.reduce((l1, l2 )=> l2.copy(amount = l2.amount+l1.amount))
+  def total = lines.reduce((l1, l2) => l2.copy(amount = l2.amount + l1.amount))
 
 }
 
