@@ -566,6 +566,14 @@ final case class FinancialsTransactionDetails(
 
 }
 object FinancialsTransactionDetails {
+
+    implicit val monoid: Monoid[FinancialsTransactionDetails] =
+    new Monoid[FinancialsTransactionDetails] {
+      def empty =
+        FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR", "1000")
+
+      def combine(m1: FinancialsTransactionDetails, m2: FinancialsTransactionDetails) = m2.copy(amount = m2.amount.+(m1.amount))
+    }
   type FinancialsTransactionDetails_Type =
     (Long, Long, String, Boolean, String, String, Instant, String, String, String)
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
@@ -617,6 +625,7 @@ final case class FinancialsTransaction(
   def month: String = common.getMonthAsString(transdate)
   def year: Int = common.getYear(transdate)
   def getPeriod = common.getPeriod(transdate)
+  def total = lines.reduce((l1, l2 )=> l2.copy(amount = l2.amount+l1.amount))
 
 }
 
