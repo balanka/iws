@@ -528,18 +528,13 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
       queries <- SQL.FinancialsTransaction
         .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
         .to[List]
-      date = Instant.now()
-      periodx = com.kabasoft.iws.domain.common.getPeriod(date)
       transactions = queries.map(
         ftr =>
           FinancialsTransaction
             .apply(ftr)
             .copy(
               modelid = if (modelId == 114) 112 else 122,
-              oid = ftr._1,
-              enterdate = date,
-              postingdate = date,
-              period = periodx
+              oid = ftr._1
             )
       )
       payables <- transactions

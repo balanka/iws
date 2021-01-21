@@ -657,7 +657,6 @@ private object SQL {
           .groupBy(lx => lx.transid)
           .map({ case (_, v) => v.combineAll })
           .toList
-        //.flatten
         reducedLine = {println("customerList"+customerList); println("customer"+customer);
             reducedLine1.reduce[Details](
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
