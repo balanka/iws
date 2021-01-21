@@ -414,19 +414,19 @@ private object SQL {
     def getBy(id: String, company: String): Query0[Customer] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY,modelid,  enter_date, modified_date, posting_date
-     FROM customer WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC
+     FROM customer WHERE id = ${id} AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
     def getByAccount(accountId: String, company: String): Query0[Customer] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY,modelid,  enter_date, modified_date, posting_date
-     FROM customer WHERE ACCOUNT = $accountId AND COMPANY = ${company} ORDER BY  id ASC
+     FROM customer WHERE ACCOUNT = ${accountId} AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Customer] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,  enter_date, modified_date, posting_date
-        FROM customer  WHERE modelid = $modelid AND COMPANY = ${company} ORDER BY  id ASC
+        FROM customer  WHERE modelid = ${modelid} AND COMPANY = ${company} ORDER BY  id ASC
          """.query
 
     def findSome(company: String, model: String*): Query0[Customer] = sql"""
@@ -590,10 +590,10 @@ private object SQL {
     def create3Supplier(model: FinancialsTransaction): ConnectionIO[List[Int]] =
       for {
         transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
-         date = Instant.now()
-         periodx = com.kabasoft.iws.domain.common.getPeriod(date)
-          transaction <- SQL.FinancialsTransaction
-           .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
+        date = Instant.now()
+        periodx = com.kabasoft.iws.domain.common.getPeriod(date)
+        transaction <- SQL.FinancialsTransaction
+          .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
           .run
         lines_x <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
         supplierList <- SQL.Supplier.getByAccount(model.account, model.company).to[List]
@@ -604,12 +604,14 @@ private object SQL {
           .map({ case (_, v) => v.combineAll })
           .toList
         //.flatten
-        reducedLine = reducedLine1.reduce[Details](
+        reducedLine = {println("supplierList"+supplierList); println("supplier"+supplier);
+        reducedLine1.reduce[Details](
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
-        )
-        //amountS = reducedLine.amount
+        )}
+        
         percentS = supplierVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
-        paymentAmount = reducedLine.amount * percentS
+        inputVatAmount = reducedLine.amount*percentS/(1+ percentS)
+        chargeAmount =  reducedLine.amount-inputVatAmount
         oaccountno = supplierVat.headOption.map(_.inputVatAccount).getOrElse("-1")
         line1 = Details(
           0,
@@ -617,7 +619,7 @@ private object SQL {
           oaccountno,
           true,
           reducedLine.account,
-          paymentAmount,
+          inputVatAmount,
           model.transdate,
           model.text,
           reducedLine.currency,
@@ -630,21 +632,23 @@ private object SQL {
               lid = 0,
               transid = transId,
               account = supplier.oaccount,
+              side=true,
+              amount=chargeAmount,
               oaccount = line.account
             )
         )
         line1created <- SQL.FinancialsTransactionDetails.create(line1).run
         lines <- mappedLines.traverse(line => SQL.FinancialsTransactionDetails.create(line).run)
-      } yield List(line1created, transaction)++lines
+      } yield List(line1created, transaction) ++ lines
 
     def create3Customer(model: FinancialsTransaction): ConnectionIO[List[Int]] =
       for {
         transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
-          date = Instant.now()
-         periodx = com.kabasoft.iws.domain.common.getPeriod(date)
-         transaction <- SQL.FinancialsTransaction
-           .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
-           .run
+        date = Instant.now()
+        periodx = com.kabasoft.iws.domain.common.getPeriod(date)
+        transaction <- SQL.FinancialsTransaction
+          .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
+          .run
         lines_x <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
         customerList <- SQL.Customer.getByAccount(model.account, model.company).to[List]
         customer = customerList.headOption.getOrElse(dummyCustomer)
@@ -654,11 +658,13 @@ private object SQL {
           .map({ case (_, v) => v.combineAll })
           .toList
         //.flatten
-        reducedLine = reducedLine1.reduce[Details](
+        reducedLine = {println("customerList"+customerList); println("customer"+customer);
+            reducedLine1.reduce[Details](
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
-        )
+        )}
         percentC = customerVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
-        settlementAmount = reducedLine.amount * percentC
+        outputVatAmount = reducedLine.amount * percentC/(1+percentC)
+        revenueAmount =  reducedLine.amount-outputVatAmount
         accountno = customerVat.headOption.map(_.outputVatAccount).getOrElse("-1")
         line2 = Details(
           0,
@@ -666,7 +672,7 @@ private object SQL {
           reducedLine.oaccount,
           true,
           accountno,
-          settlementAmount,
+          outputVatAmount,
           model.transdate,
           model.text,
           reducedLine.currency,
@@ -678,12 +684,14 @@ private object SQL {
               lid = 0,
               transid = transId,
               account = line.oaccount,
-              oaccount = customer.account
+              side=true,
+              amount=revenueAmount,
+              oaccount = customer.oaccount
             )
         )
         linecreated <- SQL.FinancialsTransactionDetails.create(line2).run
-        lines <- mappedLines.traverse(SQL.FinancialsTransactionDetails.create(_).run)
-      } yield List(linecreated, transaction)++lines
+        lines <- mappedLines.traverse(line=>SQL.FinancialsTransactionDetails.create(line).run)
+      } yield List(linecreated, transaction) ++ lines
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
       val id = idx.toLong
@@ -885,7 +893,7 @@ private object SQL {
     def getBy(id: String, company: String): Query0[Vat] = sql"""
      SELECT id, name, description, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT
       , enter_date, modified_date, posting_date, company, modelid
-     FROM vat WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC """.query
+     FROM vat WHERE id = ${id} AND COMPANY = ${company} ORDER BY  id ASC """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Vat] = sql"""
         SELECT id, name, description, PERCENT, INPUTVATACCOUNT, OUTPUTVATACCOUNT
@@ -903,7 +911,7 @@ private object SQL {
     FROM vat WHERE  COMPANY = ${company} ORDER BY id  ASC""".query
 
     def delete(id: String, company: String): Update0 =
-      sql"""DELETE FROM vat WHERE ID = $id AND COMPANY = ${company} """.update
+      sql"""DELETE FROM vat WHERE ID = ${id} AND COMPANY = ${company} """.update
 
     def update(model: Vat, company: String): Update0 =
       sql"""Update vat set  name =${model.name}, description=${model.description}

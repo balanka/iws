@@ -542,10 +542,9 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
               period = periodx
             )
       )
-      // transId <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
       payables <- transactions
         .filter(m => m.modelid == 112)
-        .traverse(ftr => SQL.FinancialsTransaction.create3Customer(ftr))
+        .traverse(ftr => SQL.FinancialsTransaction.create3Supplier(ftr))
       receivables <- transactions
         .filter(m => m.modelid == 122)
         .traverse(ftr => SQL.FinancialsTransaction.create3Customer(ftr))
