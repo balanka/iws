@@ -163,22 +163,30 @@ private object SQL {
   }
   object Company extends Repository[Company, Company] {
     def create(item: Company): Update0 =
-      sql"""INSERT INTO company (ID, NAME, DESCRIPTION, modelid) VALUES
-     (${item.id}, ${item.name}, ${item.description}
-    , ${item.modelid} )""".update
+      sql"""INSERT INTO company (ID, NAME, DESCRIPTION, street, city, state, zip, bankAcc
+        , purchasingClearingAcc, salesClearingAcc,paymentClearingAcc,settlementClearingAcc, balanceSheetAcc
+        , incomeStmtAcc, cashAcc, taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText
+        , pageFooterText,  headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale)
+    VALUES (${item.id}, ${item.name}, ${item.description}, ${item.street}, ${item.city}, ${item.state}, ${item.zip}
+        , ${item.bankAcc}, ${item.purchasingClearingAcc}, ${item.salesClearingAcc}, ${item.settlementClearingAcc}
+        , balanceSheetAcc=${item.balanceSheetAcc}, incomeStmtAcc=${item.incomeStmtAcc}, ${item.cashAcc}, ${item.taxCode}
+        , ${item.vatCode}, ${item.currency}, ${item.enterdate}, ${item.postingdate}, ${item.changedate}, ${item.modelid}
+        , ${item.pageHeaderText}, ${item.pageFooterText}, ${item.headerText}, ${item.footerText}, ${item.logoContent}
+        , ${item.logoName}, ${item.contentType}, ${item.partner}, ${item.phone}, ${item.fax}, ${item.email}
+        , ${item.locale}  )""".update
 
     def getBy(id: String, company: String): Query0[Company] = sql"""
     select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
-     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+     , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
      FROM company WHERE id = $id """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Company] = sql"""
       select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
-     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+     , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
       FROM company
    WHERE modelid = $modelid AND ID=${company}  """.query
 
@@ -186,7 +194,7 @@ private object SQL {
      select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
-     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
+     , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
     FROM company FROM company C
     WHERE C.id=${company} ORDER BY  C.id ASC""".query
 
@@ -194,9 +202,8 @@ private object SQL {
       select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
-     , headerText,footerText,logoContent, logoName, contentType, partner, tel, fax, email,locale
-   FROM company C
-    WHERE  ID=${company} ORDER BY id  ASC
+     , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
+   FROM company  WHERE  ID=${company} ORDER BY id  ASC
   """.query
 
     def delete(id: String, company: String): Update0 =
@@ -209,7 +216,7 @@ private object SQL {
      , paymentclearingacc =${model.paymentClearingAcc}, settlementclearingacc=${model.settlementClearingAcc}
      , balanceSheetAcc =${model.balanceSheetAcc}, incomeStmtAcc=${model.incomeStmtAcc}
      , cashAccount=${model.cashAcc}, taxcode=${model.taxCode}, vatcode=${model.vatCode}, locale =${model.locale}
-     , tel=${model.tel}, fax=${model.fax}, partner=${model.partner}, email=${model.email}
+     , phone=${model.phone}, fax=${model.fax}, partner=${model.partner}, email=${model.email}
            where C.id =${model.id}""".update
   }
   object Masterfile extends Repository[Masterfile, Masterfile] {
@@ -457,7 +464,7 @@ private object SQL {
          , phone= ${model.phone},  email= ${model.email}, account=${model.account},  revenue_account=${model.oaccount}
          , iban =${model.iban}, vatcode=${model.vatcode},  company=${model.company}
          where id =${model.id} AND COMPANY = ${company}""".update
-      println("sql>>>>" + sq.sql)
+       //println("sql>>>>" + sq.sql)
       sq
     }
   }
@@ -603,11 +610,10 @@ private object SQL {
           .groupBy(lx => lx.transid)
           .map({ case (_, v) => v.combineAll })
           .toList
-        //.flatten
-        reducedLine = {println("supplierList"+supplierList); println("supplier"+supplier);
-        reducedLine1.reduce[Details](
+
+        reducedLine = reducedLine1.reduce[Details](
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
-        )}
+        )
         
         percentS = supplierVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
         inputVatAmount = reducedLine.amount*percentS/(1+ percentS)
@@ -657,10 +663,10 @@ private object SQL {
           .groupBy(lx => lx.transid)
           .map({ case (_, v) => v.combineAll })
           .toList
-        reducedLine = {println("customerList"+customerList); println("customer"+customer);
-            reducedLine1.reduce[Details](
+
+        reducedLine = reducedLine1.reduce[Details](
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
-        )}
+        )
         percentC = customerVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
         outputVatAmount = reducedLine.amount * percentC/(1+percentC)
         revenueAmount =  reducedLine.amount-outputVatAmount
