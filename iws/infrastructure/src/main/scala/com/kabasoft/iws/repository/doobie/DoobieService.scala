@@ -619,12 +619,12 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
     lines: List[FTDetails]
   ): List[DPAC] = {
 
-    val pacx1: List[DPAC] = lines.map(line => getOldPacs(pacList, period, line.account)).flatten.toSet.toList
-    val poacx1: List[DPAC] = lines.map(line => getOldPacs(pacList, period, line.oaccount)).flatten.toSet.toList
+    val pacx1: List[DPAC] = lines.flatMap(line => getOldPacs(pacList, period, line.account)).toSet.toList
+    val poacx1: List[DPAC] = lines.flatMap(line => getOldPacs(pacList, period, line.oaccount)).toSet.toList
     val groupedLines: List[FTDetails] = lines.groupBy(_.account).map({ case (_, v) => v.combineAll }).toList
     val groupedOLines: List[FTDetails] = lines.groupBy(_.oaccount).map({ case (_, v) => v.combineAll }).toList
-    val pacx: List[DPAC] = groupedLines.map(line => debitIt(pacx1, period, line)).flatten
-    val poacx: List[DPAC] = groupedOLines.map(line => creditIt(poacx1, period, line)).flatten
+    val pacx: List[DPAC] = groupedLines.flatMap(line => debitIt(pacx1, period, line))
+    val poacx: List[DPAC] = groupedOLines.flatMap(line => creditIt(poacx1, period, line))
 
     Set(pacx, poacx).flatten.toList
   }
@@ -635,14 +635,14 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
   ): List[DPAC] = {
 
     val pacx1 = lines.map(line => createIfNone(pacList, period, line, line.account))
-    val pacx1x: List[DPAC] = pacx1.filter(_._2 == true).map(_._1).flatten.toSet.toList
+    val pacx1x: List[DPAC] = pacx1.filter(_._2 == true).flatMap(m => m._1).toSet.toList
     val poacx1: List[(Option[DPAC], Boolean)] = lines
       .map(line => createIfNone(pacList, period, line, line.oaccount))
-    val poacx1x: List[DPAC] = poacx1.filter(_._2 == true).map(_._1).flatten.toSet.toList
+    val poacx1x: List[DPAC] = poacx1.filter(_._2 == true).flatMap(m => m._1).toSet.toList
     val groupedLines: List[FTDetails] = lines.groupBy(_.account).map({ case (_, v) => v.combineAll }).toList
     val groupedOLines: List[FTDetails] = lines.groupBy(_.oaccount).map({ case (_, v) => v.combineAll }).toList
-    val pacx: List[DPAC] = groupedLines.map(line => debitIt(pacx1x, period, line)).flatten
-    val poacx: List[DPAC] = groupedOLines.map(line => creditIt(poacx1x, period, line)).flatten
+    val pacx: List[DPAC] = groupedLines.flatMap(line => debitIt(pacx1x, period, line))
+    val poacx: List[DPAC] = groupedOLines.flatMap(line => creditIt(poacx1x, period, line))
     Set(pacx, poacx).flatten.toList
   }
 

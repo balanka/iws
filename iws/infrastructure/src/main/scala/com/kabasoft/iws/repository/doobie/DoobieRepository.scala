@@ -210,14 +210,14 @@ private object SQL {
       sql"""DELETE FROM company C WHERE C.ID = $id""".update
 
     def update(model: Company, company: String): Update0 =
-      sql"""Update company C set C.id = ${model.id}, C.name =${model.name}, C.description=${model.description}
-      street =${model.street}, city=${model.city}, state =${model.state}, zip=${model.zip}, bankacc=${model.bankAcc}
-     , purchasingclearingacc=${model.purchasingClearingAcc}, salesclearingacc=${model.salesClearingAcc}
+      sql"""Update company  set id = ${model.id}, name =${model.name}, description=${model.description}
+     , street =${model.street}, city=${model.city}, state =${model.state}, zip=${model.zip}, bankacc=${model.bankAcc}
+     , purchasingclearingacc=${model.purchasingClearingAcc}, salesClearingacc=${model.salesClearingAcc}
      , paymentclearingacc =${model.paymentClearingAcc}, settlementclearingacc=${model.settlementClearingAcc}
      , balanceSheetAcc =${model.balanceSheetAcc}, incomeStmtAcc=${model.incomeStmtAcc}
-     , cashAccount=${model.cashAcc}, taxcode=${model.taxCode}, vatcode=${model.vatCode}, locale =${model.locale}
+     , cashAcc=${model.cashAcc}, taxcode=${model.taxCode}, vatcode=${model.vatCode}, locale =${model.locale}
      , phone=${model.phone}, fax=${model.fax}, partner=${model.partner}, email=${model.email}
-           where C.id =${model.id}""".update
+           where id =${model.id}""".update
   }
   object Masterfile extends Repository[Masterfile, Masterfile] {
     def create(item: Masterfile): Update0 =
@@ -464,7 +464,7 @@ private object SQL {
          , phone= ${model.phone},  email= ${model.email}, account=${model.account},  revenue_account=${model.oaccount}
          , iban =${model.iban}, vatcode=${model.vatcode},  company=${model.company}
          where id =${model.id} AND COMPANY = ${company}""".update
-       //println("sql>>>>" + sq.sql)
+      //println("sql>>>>" + sq.sql)
       sq
     }
   }
@@ -614,10 +614,10 @@ private object SQL {
         reducedLine = reducedLine1.reduce[Details](
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
         )
-        
+
         percentS = supplierVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
-        inputVatAmount = reducedLine.amount*percentS/(1+ percentS)
-        chargeAmount =  reducedLine.amount-inputVatAmount
+        inputVatAmount = reducedLine.amount * percentS / (1 + percentS)
+        chargeAmount = reducedLine.amount - inputVatAmount
         oaccountno = supplierVat.headOption.map(_.inputVatAccount).getOrElse("-1")
         line1 = Details(
           0,
@@ -638,8 +638,8 @@ private object SQL {
               lid = 0,
               transid = transId,
               account = supplier.oaccount,
-              side=true,
-              amount=chargeAmount,
+              side = true,
+              amount = chargeAmount,
               oaccount = line.account
             )
         )
@@ -668,8 +668,8 @@ private object SQL {
           (l1, l2) => l2.copy(amount = (l2.amount.+(l1.amount)))
         )
         percentC = customerVat.headOption.map(vat => vat.percent).getOrElse(BigDecimal(0))
-        outputVatAmount = reducedLine.amount * percentC/(1+percentC)
-        revenueAmount =  reducedLine.amount-outputVatAmount
+        outputVatAmount = reducedLine.amount * percentC / (1 + percentC)
+        revenueAmount = reducedLine.amount - outputVatAmount
         accountno = customerVat.headOption.map(_.outputVatAccount).getOrElse("-1")
         line2 = Details(
           0,
@@ -689,13 +689,13 @@ private object SQL {
               lid = 0,
               transid = transId,
               account = line.oaccount,
-              side=true,
-              amount=revenueAmount,
+              side = true,
+              amount = revenueAmount,
               oaccount = customer.oaccount
             )
         )
         linecreated <- SQL.FinancialsTransactionDetails.create(line2).run
-        lines <- mappedLines.traverse(line=>SQL.FinancialsTransactionDetails.create(line).run)
+        lines <- mappedLines.traverse(line => SQL.FinancialsTransactionDetails.create(line).run)
       } yield List(linecreated, transaction) ++ lines
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
