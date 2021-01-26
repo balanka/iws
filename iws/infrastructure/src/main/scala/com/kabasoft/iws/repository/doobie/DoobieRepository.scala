@@ -27,6 +27,12 @@ trait Repository[-A, B] {
 }
 private object SQL {
 
+  object common {
+    def getBankAccounts(ownerId: String, companyId: String): Query0[BankAccount] = sql"""
+      SELECT IBAN, BIC, OWNER, MODELID from BankAccount where 
+      owner =${ownerId} AND company =${companyId}""".query
+  }
+
   object Article extends Repository[Article, Article] {
     def create(item: Article): Update0 =
       sql"""INSERT INTO article (ID, NAME, DESCRIPTION, MODELID, PARENT, PRICE, STOCKED, COMPANY) VALUES
@@ -180,7 +186,7 @@ private object SQL {
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
      , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
-     FROM company WHERE id = $id """.query
+     FROM company WHERE id = ${id} """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Company] = sql"""
       select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
@@ -188,15 +194,15 @@ private object SQL {
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
      , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
       FROM company
-   WHERE modelid = $modelid AND ID=${company}  """.query
+   WHERE modelid = ${modelid} AND ID=${company}  """.query
 
     def findSome(company: String, model: String*): Query0[Company] = sql"""
      select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
      , paymentClearingAcc,settlementClearingAcc, balanceSheetAcc, incomeStmtAcc, cashAcc
      ,  taxCode, vatCode, currency, enterdate, postingdate,changedate, modelid, pageHeaderText, pageFooterText
      , headerText,footerText,logoContent, logoName, contentType, partner, phone, fax, email,locale
-    FROM company FROM company C
-    WHERE C.id=${company} ORDER BY  C.id ASC""".query
+    FROM company 
+    WHERE id=${company} """.query
 
     def list(company: String): Query0[Company] = sql"""
       select id, name, description, street, city, state, zip, bankAcc, purchasingClearingAcc, salesClearingAcc
@@ -207,7 +213,7 @@ private object SQL {
   """.query
 
     def delete(id: String, company: String): Update0 =
-      sql"""DELETE FROM company C WHERE C.ID = $id""".update
+      sql"""DELETE FROM company  WHERE ID = ${id}""".update
 
     def update(model: Company, company: String): Update0 =
       sql"""Update company  set id = ${model.id}, name =${model.name}, description=${model.description}
@@ -467,6 +473,7 @@ private object SQL {
       //println("sql>>>>" + sq.sql)
       sq
     }
+
   }
   object Supplier extends Repository[Supplier, Supplier] {
 
@@ -521,7 +528,6 @@ private object SQL {
          , phone= ${model.phone}, email= ${model.email}, account=${model.account}, charge_account=${model.oaccount}
          , iban =${model.iban}, vatcode=${model.vatcode}, company=${model.company}
          where id =${model.id} AND COMPANY = ${company}""".update
-
   }
   object FinancialsTransactionDetails extends Repository[Details, Details] {
 
@@ -619,7 +625,7 @@ private object SQL {
         inputVatAmount = reducedLine.amount * percentS / (1 + percentS)
         chargeAmount = reducedLine.amount - inputVatAmount
         oaccountno = supplierVat.headOption.map(_.inputVatAccount).getOrElse("-1")
-        line1 = Details(
+        line = Details(
           0,
           transId,
           oaccountno,
@@ -643,7 +649,7 @@ private object SQL {
               oaccount = line.account
             )
         )
-        line1created <- SQL.FinancialsTransactionDetails.create(line1).run
+        line1created <- SQL.FinancialsTransactionDetails.create(line).run
         lines <- mappedLines.traverse(line => SQL.FinancialsTransactionDetails.create(line).run)
       } yield List(line1created, transaction) ++ lines
 
@@ -671,7 +677,7 @@ private object SQL {
         outputVatAmount = reducedLine.amount * percentC / (1 + percentC)
         revenueAmount = reducedLine.amount - outputVatAmount
         accountno = customerVat.headOption.map(_.outputVatAccount).getOrElse("-1")
-        line2 = Details(
+        line = Details(
           0,
           transId,
           reducedLine.oaccount,
@@ -694,15 +700,15 @@ private object SQL {
               oaccount = customer.oaccount
             )
         )
-        linecreated <- SQL.FinancialsTransactionDetails.create(line2).run
+        linecreated <- SQL.FinancialsTransactionDetails.create(line).run
         lines <- mappedLines.traverse(line => SQL.FinancialsTransactionDetails.create(line).run)
       } yield List(linecreated, transaction) ++ lines
 
     def getBy(idx: String, company: String): Query0[FinancialsTransaction_Type2] = {
       val id = idx.toLong
       sql"""SELECT A.ID, A.OID, A.COSTCENTER, A.ACCOUNT, A.TRANSDATE, A.POSTINGDATE, A.ENTERDATE, A.PERIOD, A.POSTED
-        , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, COALESCE (B.ID, -1) as ID
-      , COALESCE(B.account, '-1') as account, COALESCE (B.side,true) as side
+     , A.modelid, A.COMPANY, A.HEADERTEXT, A.TYPE_JOURNAL, A.FILE_CONTENT, COALESCE (B.ID, -1) as ID
+     , COALESCE(B.account, '-1') as account, COALESCE (B.side,true) as side
      ,  COALESCE (B.oaccount, '-1') as oaccount,  COALESCE( B.amount,0) as Amount
      , COALESCE(B.duedate,CURRENT_TIMESTAMP) AS duedate, COALESCE (B.text,'TEXT') AS text
      , COALESCE (B.currency, 'EUR') as currency

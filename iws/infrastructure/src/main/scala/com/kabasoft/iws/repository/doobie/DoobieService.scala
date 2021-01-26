@@ -43,6 +43,7 @@ object Common {
     for {
       response <- func(query).map(_.run)
     } yield response
+
 }
 
 case class BankService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Bank] {
@@ -251,6 +252,9 @@ case class CompanyService[F[_]: Sync](transactor: Transactor[F]) extends Service
   def update(model: Company, company: String): F[List[Int]] =
     getXX(SQL.Company.update, List(model), company).sequence.transact(transactor)
 
+  def getBankAccounts(id: String, company: String): F[List[BankAccount]] =
+    SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
+
 }
 
 case class CostCenterService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, CostCenter] {
@@ -396,6 +400,8 @@ case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Servic
 
   def update(model: Customer, company: String): F[List[Int]] =
     getXX(SQL.Customer.update, List(model), company).sequence.transact(transactor)
+  def getBankAccounts(id: String, company: String): F[List[BankAccount]] =
+    SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
 }
 case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Supplier] {
   def create(item: Supplier): F[Int] = SQL.Supplier.create(item).run.transact(transactor)
@@ -411,6 +417,9 @@ case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Servic
 
   def update(model: Supplier, company: String): F[List[Int]] =
     getXX(SQL.Supplier.update, List(model), company).sequence.transact(transactor)
+
+  def getBankAccounts(id: String, company: String): F[List[BankAccount]] =
+    SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
 
 }
 case class PeriodicAccountBalanceService[F[_]: Sync](
@@ -433,6 +442,7 @@ case class PeriodicAccountBalanceService[F[_]: Sync](
 
   def update(model: PeriodicAccountBalance, company: String): F[List[Int]] =
     getXX(SQL.PeriodicAccountBalance.update, List(model), company).sequence.transact(transactor)
+
 }
 
 case class RoutesService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Routes] {

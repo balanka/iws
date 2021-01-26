@@ -65,6 +65,11 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   }
 
   private def get(service: CustomerService[F]): AuthEndpoint[F, Auth] = {
+    case GET -> Root / "bankacc" / id asAuthed user =>
+      for {
+        bankaccounts <- service.getBankAccounts(id, user.company)
+        response <- Ok(bankaccounts.asJson)
+      } yield response
     case GET -> Root / id asAuthed user =>
       service.getBy(id, user.company).flatMap {
         case Some(found) => Ok(found.asJson)

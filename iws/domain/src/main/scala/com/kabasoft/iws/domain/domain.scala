@@ -507,15 +507,14 @@ final case class Bank(
   modelid: Int = 11,
   company: String
 ) extends IWS
-final case class BankAccount(iban: String, owner: String, bic: String, companyId: String, modelId: Int = 12)
-    extends IWS {
+final case class BankAccount(iban: String, owner: String, bic: String, company: String, modelId: Int = 12) extends IWS {
   def id: String = iban
   def name: String = owner
 
 }
 object BankAccount {
-  def apply(iban: String, owner: String, bic: String, companyId: String) =
-    new BankAccount(iban, owner, bic, companyId)
+  def apply(iban: String, owner: String, bic: String, company: String) =
+    new BankAccount(iban, owner, bic, company)
 }
 final case class CostCenter(
   id: String,
@@ -561,7 +560,8 @@ final case class Supplier(
   modelid: Int = 3,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now()
+  postingdate: Instant = Instant.now() //,
+  //bankaccounts: List[BankAccount] = Nil
 ) extends IWS
 final case class Customer(
   id: String,
@@ -582,7 +582,8 @@ final case class Customer(
   modelid: Int = 3,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now()
+  postingdate: Instant = Instant.now() //,
+  //bankaccounts: List[BankAccount] = Nil
 ) extends IWS
 final case class FinancialsTransactionDetails(
   lid: Long,
@@ -853,5 +854,6 @@ final case class Company(
   phone: String,
   fax: String,
   email: String,
-  locale: String
+  locale: String //,
+  //bankaccounts: List[BankAccount] = Nil
 )
