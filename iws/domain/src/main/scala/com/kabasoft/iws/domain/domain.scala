@@ -507,14 +507,14 @@ final case class Bank(
   modelid: Int = 11,
   company: String
 ) extends IWS
-final case class BankAccount(iban: String, owner: String, bic: String, company: String, modelId: Int = 12) extends IWS {
+final case class BankAccount(iban: String, bic: String, owner: String,  company: String, modelId: Int = 12) extends IWS {
   def id: String = iban
   def name: String = owner
 
 }
 object BankAccount {
-  def apply(iban: String, owner: String, bic: String, company: String) =
-    new BankAccount(iban, owner, bic, company)
+  def apply(iban: String, bic: String, owner: String,  company: String) =
+    new BankAccount(iban, bic, owner,  company)
 }
 final case class CostCenter(
   id: String,
