@@ -7,6 +7,8 @@ import doobie.implicits._
 import doobie.util.query.Query0
 import doobie.util.update.Update0
 import com.kabasoft.iws.domain.Account.Account_Type
+import com.kabasoft.iws.domain.Customer.Customer_Type
+import com.kabasoft.iws.domain.Supplier.Supplier_Type
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.{FinancialsTransactionDetails => Details}
 import com.kabasoft.iws.domain.FinancialsTransaction.{FinancialsTransaction_Type, FinancialsTransaction_Type2}
@@ -28,9 +30,12 @@ trait Repository[-A, B] {
 private object SQL {
 
   object common {
-    def getBankAccounts(ownerId: String, companyId: String): Query0[BankAccount] = sql"""
-      SELECT IBAN, BIC, OWNER, MODELID from BankAccount where 
+    def getBankAccounts(ownerId: String, companyId: String): Query0[BankAccount] = {
+      println(s"ownerId, $ownerId")
+      println(s"companyId, $companyId")
+      sql""" SELECT IBAN, BIC, OWNER, MODELID, company from BankAccount where 
       owner =${ownerId} AND company =${companyId}""".query
+    }
   }
 
   object Article extends Repository[Article, Article] {
@@ -79,12 +84,12 @@ private object SQL {
     def getBy(id: String, company: String): Query0[Bank] = sql"""
      SELECT id, name, description, enter_date, modified_date, posting_date,modelid, company
      FROM Bank
-     WHERE id = $id AND COMPANY=${company} ORDER BY  id ASC
+     WHERE id = ${id} AND COMPANY=${company} ORDER BY  id ASC
      """.query
 
     def getByModelId(modelid: Int, company: String): Query0[Bank] = sql"""
         SELECT id, name, description, enter_date, modified_date, posting_date, modelid, company
-        FROM Bank  WHERE modelid = $modelid ORDER BY  id ASC
+        FROM Bank  WHERE modelid = ${modelid} ORDER BY  id ASC
          """.query
     def findSome(company: String, model: String*): Query0[Bank] = sql"""
         SELECT id, name, description, enter_date, modified_date, posting_date, modelid, company as component
@@ -97,7 +102,7 @@ private object SQL {
   """.query
 
     def delete(id: String, company: String): Update0 =
-      sql"""DELETE FROM Bank WHERE ID = $id AND COMPANY=${company}""".update
+      sql"""DELETE FROM Bank WHERE ID = ${id} AND COMPANY=${company}""".update
 
     def update(model: Bank, company: String): Update0 = sql"""Update Bank set id = ${model.id}, name =${model.name},
          description=${model.description}  where id =${model.id} AND COMPANY=${company} """.update
@@ -415,7 +420,7 @@ private object SQL {
       WHERE ACCOUNT=${model.account} AND COMPANY = ${company} and PERIOD BETWEEN ${model.period} and ${model.period}
       ORDER BY PERIOD ASC """.query
   }
-  object Customer extends Repository[Customer, Customer] {
+  object Customer extends Repository[Customer, Customer_Type] {
 
     def create(item: Customer): Update0 =
       sql"""INSERT INTO customer (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY,
@@ -424,37 +429,37 @@ private object SQL {
      , ${item.state},  ${item.zip},  ${item.country}, ${item.phone},  ${item.email}, ${item.account}
      , ${item.oaccount}, ${item.iban}, ${item.vatcode}, ${item.company} , ${item.modelid})""".update
 
-    def getBy(id: String, company: String): Query0[Customer] = sql"""
+    def getBy(id: String, company: String): Query0[Customer_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY,modelid,  enter_date, modified_date, posting_date
      FROM customer WHERE id = ${id} AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
-    def getByAccount(accountId: String, company: String): Query0[Customer] = sql"""
+    def getByAccount(accountId: String, company: String): Query0[Customer_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY,modelid,  enter_date, modified_date, posting_date
      FROM customer WHERE ACCOUNT = ${accountId} AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
-    def getByModelId(modelid: Int, company: String): Query0[Customer] = sql"""
+    def getByModelId(modelid: Int, company: String): Query0[Customer_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,  enter_date, modified_date, posting_date
         FROM customer  WHERE modelid = ${modelid} AND COMPANY = ${company} ORDER BY  id ASC
          """.query
 
-    def findSome(company: String, model: String*): Query0[Customer] = sql"""
+    def findSome(company: String, model: String*): Query0[Customer_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,  enter_date, modified_date, posting_date
         FROM customer   WHERE  COMPANY = ${company} ORDER BY  id ASC
          """.query
 
-    def getByIBAN(iban: String, company: String): Query0[Customer] = sql"""
+    def getByIBAN(iban: String, company: String): Query0[Customer_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, REVENUE_ACCOUNT
         , C.IBAN, VATCODE, C.COMPANY, C.modelid,  enter_date, modified_date, posting_date
         FROM customer C, BankAccount B WHERE B.iban =${iban} AND C.id = B.owner AND C.COMPANY = ${company} ORDER BY  C.id ASC
          """.query
 
-    def list(company: String): Query0[Customer] = sql"""
+    def list(company: String): Query0[Customer_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,REVENUE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid, enter_date, modified_date, posting_date
      FROM customer WHERE  COMPANY = ${company}
@@ -475,7 +480,7 @@ private object SQL {
     }
 
   }
-  object Supplier extends Repository[Supplier, Supplier] {
+  object Supplier extends Repository[Supplier, Supplier_Type] {
 
     def create(item: Supplier): Update0 =
       sql"""INSERT INTO supplier (ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY
@@ -484,38 +489,38 @@ private object SQL {
            , ${item.state}, ${item.zip},  ${item.country}, ${item.phone},  ${item.email}, ${item.account}
            , ${item.oaccount}, ${item.iban}, ${item.vatcode}, ${item.company} , ${item.modelid})""".update
 
-    def getBy(id: String, company: String): Query0[Supplier] = sql"""
+    def getBy(id: String, company: String): Query0[Supplier_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
      FROM supplier
      WHERE id = $id AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
-    def getByAccount(accountId: String, company: String): Query0[Supplier] = sql"""
+    def getByAccount(accountId: String, company: String): Query0[Supplier_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
      FROM supplier
      WHERE ACCOUNT = $accountId AND COMPANY = ${company} ORDER BY  id ASC
      """.query
 
-    def getByModelId(modelid: Int, company: String): Query0[Supplier] = sql"""
+    def getByModelId(modelid: Int, company: String): Query0[Supplier_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
              , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
         FROM supplier  WHERE modelid = $modelid AND COMPANY = ${company} ORDER BY  id ASC
          """.query
 
-    def getByIBAN(iban: String, company: String): Query0[Supplier] = sql"""
+    def getByIBAN(iban: String, company: String): Query0[Supplier_Type] = sql"""
         SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT,CHARGE_ACCOUNT
              , S.IBAN, VATCODE, S.COMPANY, S.modelid,  enter_date, modified_date, posting_date
         FROM supplier S, BankAccount B WHERE B.iban =${iban} AND S.id = B.owner AND S.COMPANY = ${company} ORDER BY  S.id ASC
          """.query
 
-    def list(company: String): Query0[Supplier] = sql"""
+    def list(company: String): Query0[Supplier_Type] = sql"""
      SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
      , IBAN, VATCODE, COMPANY, modelid,   enter_date, modified_date, posting_date
      FROM supplier WHERE COMPANY = ${company} ORDER BY id  ASC """.query
 
-    def findSome(company: String, model: String*): Query0[Supplier] = sql"""
+    def findSome(company: String, model: String*): Query0[Supplier_Type] = sql"""
       SELECT ID, NAME, DESCRIPTION, STREET, CITY, STATE, ZIP, COUNTRY, PHONE, EMAIL, ACCOUNT, CHARGE_ACCOUNT
     , IBAN, VATCODE, COMPANY, modelid,  enter_date, modified_date, posting_date
     FROM supplier WHERE  COMPANY = ${company} ORDER BY id  ASC """.query
@@ -579,7 +584,6 @@ private object SQL {
   }
   object FinancialsTransaction extends Repository[FinancialsTransaction, FinancialsTransaction_Type2] {
 
-    import com.kabasoft.iws.domain.common.{dummyCustomer, dummySupplier}
     import com.kabasoft.iws.domain.FinancialsTransactionDetails.monoid
     def createDetails(model: Details, transid: Long) =
       sql"""INSERT INTO details_compta (ID, TRANSID, ACCOUNT, SIDE, OACCOUNT, AMOUNT,DUEDATE, TEXT, CURRENCY, COMPANY) VALUES
@@ -609,8 +613,11 @@ private object SQL {
           .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
           .run
         lines_x <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
-        supplierList <- SQL.Supplier.getByAccount(model.account, model.company).to[List]
-        supplier = supplierList.headOption.getOrElse(dummySupplier)
+        supplierList <- SQL.Supplier
+          .getByAccount(model.account, model.company)
+          .to[List]
+          .map(s => com.kabasoft.iws.domain.Supplier.apply(s))
+        supplier = supplierList.headOption.getOrElse(com.kabasoft.iws.domain.common.dummySupplier)
         supplierVat <- SQL.Vat.getBy(supplier.vatcode, model.company).to[List]
         reducedLine1 = lines_x
           .groupBy(lx => lx.transid)
@@ -662,8 +669,11 @@ private object SQL {
           .create(model.copy(tid = transId, enterdate = date, postingdate = date, period = periodx))
           .run
         lines_x <- SQL.FinancialsTransactionDetails.getByTransId(model.tid, model.company).to[List]
-        customerList <- SQL.Customer.getByAccount(model.account, model.company).to[List]
-        customer = customerList.headOption.getOrElse(dummyCustomer)
+        customerList <- SQL.Customer
+          .getByAccount(model.account, model.company)
+          .to[List]
+          .map(com.kabasoft.iws.domain.Customer.apply)
+        customer = customerList.headOption.getOrElse(com.kabasoft.iws.domain.common.dummyCustomer)
         customerVat <- SQL.Vat.getBy(customer.vatcode, model.company).to[List]
         reducedLine1 = lines_x
           .groupBy(lx => lx.transid)

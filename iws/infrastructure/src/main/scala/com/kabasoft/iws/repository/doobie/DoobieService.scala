@@ -44,6 +44,9 @@ object Common {
       response <- func(query).map(_.run)
     } yield response
 
+  def bankAccounts(id: String, company: String): ConnectionIO[List[BankAccount]] =
+    SQL.common.getBankAccounts(id, company).to[List]
+
 }
 
 case class BankService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Bank] {
@@ -110,12 +113,12 @@ case class BankStatementService[F[_]: Sync](transactor: Transactor[F]) extends S
 
   private[this] def createFTX(bs: BankStatement, company: Company): ConnectionIO[Option[FinancialsTransaction]] =
     for {
-      supplier <- SQL.Supplier.getByIBAN(bs.accountno, bs.company).option
+      supplier <- SQL.Supplier.getByIBAN(bs.accountno, bs.company).option.map(s => Supplier.apply(s))
     } yield getFtr4Supplier(bs, supplier, company)
 
   private[this] def createFT(bs: BankStatement, company: Company): ConnectionIO[Option[FinancialsTransaction]] =
     for {
-      customer <- SQL.Customer.getByIBAN(bs.accountno, bs.company).option
+      customer <- SQL.Customer.getByIBAN(bs.accountno, bs.company).option.map(c => Customer.apply(c))
     } yield getFtr4Customer(bs, customer, company)
   def getFtr4Supplier(
     bs: BankStatement,
@@ -370,6 +373,7 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
       pac_created <- pacList.traverse(SQL.PeriodicAccountBalance.create(_).run)
     } yield pac_created).transact(transactor)
 }
+
 case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Article] {
   def create(item: Article): F[Int] = SQL.Article.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.Article.delete(id, company).run.transact(transactor)
@@ -387,16 +391,24 @@ case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service
 }
 
 case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Customer] {
+  
+  def bankAccounts(id: String, company: String) = SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
   def create(item: Customer): F[Int] = SQL.Customer.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.Customer.delete(id, company).run.transact(transactor)
   def list(from: Int, until: Int, company: String): F[List[Customer]] =
-    paginate(until - from, from)(SQL.Customer.list(company)).to[List].transact(transactor)
+    paginate(until - from, from)(SQL.Customer.list(company)).to[List].map(Customer.apply).transact(transactor)
   def getBy(id: String, company: String): F[Option[Customer]] =
-    SQL.Customer.getBy(id, company).option.transact(transactor)
+    SQL.Customer.getBy(id, company).option.map(c => Customer.apply(c)).transact(transactor)
   def findSome(from: Int, until: Int, company: String, model: String*): F[List[Customer]] =
-    paginate(until - from, from)(SQL.Customer.findSome(company, model: _*)).to[List].transact(transactor)
+    paginate(until - from, from)(SQL.Customer.findSome(company, model: _*))
+      .to[List]
+      .map(Customer.apply)
+      .transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int, company: String): F[List[Customer]] =
-    paginate(until - from, from)(SQL.Customer.getByModelId(modelid, company)).to[List].transact(transactor)
+    paginate(until - from, from)(SQL.Customer.getByModelId(modelid, company))
+      .to[List]
+      .map(Customer.apply)
+      .transact(transactor)
 
   def update(model: Customer, company: String): F[List[Int]] =
     getXX(SQL.Customer.update, List(model), company).sequence.transact(transactor)
@@ -404,16 +416,33 @@ case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Servic
     SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
 }
 case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Supplier] {
+
+  def bankAccounts(id: String, company: String) =
+    SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
+
   def create(item: Supplier): F[Int] = SQL.Supplier.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.Supplier.delete(id, company).run.transact(transactor)
   def list(from: Int, until: Int, company: String): F[List[Supplier]] =
-    paginate(until - from, from)(SQL.Supplier.list(company)).to[List].transact(transactor)
+    (for {
+      // f <-   ((id, c) => bankAccounts(id, c))
+      transactions <- paginate(until - from, from)(SQL.Supplier.list(company))
+        .to[List]
+        .map(Supplier.apply)
+      //.map(ls => ls.map(s => s.copy(bankaccounts = f(s.id, company).transact(transactor))))
+      // } yield transactions.map(s => s.copy(bankaccounts = bankAccounts(s.id, company).transact(transactor))))
+    } yield transactions).transact(transactor)
   def getBy(id: String, company: String): F[Option[Supplier]] =
-    SQL.Supplier.getBy(id, company).option.transact(transactor)
+    SQL.Supplier.getBy(id, company).option.map(s => Supplier.apply(s)).transact(transactor)
   def findSome(from: Int, until: Int, company: String, model: String*): F[List[Supplier]] =
-    paginate(until - from, from)(SQL.Supplier.findSome(company, model: _*)).to[List].transact(transactor)
+    paginate(until - from, from)(SQL.Supplier.findSome(company, model: _*))
+      .to[List]
+      .map(s => com.kabasoft.iws.domain.Supplier.apply(s))
+      .transact(transactor)
   def getByModelId(modelid: Int, from: Int, until: Int, company: String): F[List[Supplier]] =
-    paginate(until - from, from)(SQL.Supplier.getByModelId(modelid, company)).to[List].transact(transactor)
+    paginate(until - from, from)(SQL.Supplier.getByModelId(modelid, company))
+      .to[List]
+      .map(s => com.kabasoft.iws.domain.Supplier.apply(s))
+      .transact(transactor)
 
   def update(model: Supplier, company: String): F[List[Int]] =
     getXX(SQL.Supplier.update, List(model), company).sequence.transact(transactor)

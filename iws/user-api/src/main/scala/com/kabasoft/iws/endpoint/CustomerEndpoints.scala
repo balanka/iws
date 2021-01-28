@@ -44,31 +44,62 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         updated <- service.update(masterfile, user.company)
         response <- Ok(updated.asJson)
       } yield response
-
+   
     case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-
-      PaginationValidator.validate(page, pageSize) match {
-        case Valid(pagination) =>
-          val (from, until) = pagination.range
-          for {
-            retrieved <- service.list(from, until + 1, user.company)
-            hasNext = retrieved.size > until
-            masterfile = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + masterfile.asJson + " }")
-
-          } yield response
-        case Invalid(errors) =>
-          BadRequest(ErrorsJson.from(errors).asJson)
-      }
+       getResponse(page, pageSize, user.company, service.list, service )
+  
   }
 
+  def bankAccounts(c: Customer, company: String, service: CustomerService[F]) =
+    for {
+      bankAccouts_ <- service.bankAccounts(c.id, company)
+      customer = c.copy(bankaccounts = bankAccouts_)
+    } yield customer
+
+  def getResponse (page:Int, pageSize:Int,  company:String, call:(Int, Int, String) =>F[List[Customer]]
+           , service: CustomerService[F]) =
+         PaginationValidator.validate(page, pageSize) match {
+            case Valid(pagination) =>
+                val (from, until) = pagination.range
+                for {
+                    retrieved <- call(from, until, company)
+                    hasNext = retrieved.size > until
+                    list = if (hasNext) retrieved.init else retrieved
+                    trx <- list.traverse(s => bankAccounts(s, company, service))
+                    response <- Ok("{ \"hits\": " + trx.asJson + " }")
+                } yield response 
+           case Invalid(errors) =>
+          BadRequest(ErrorsJson.from(errors).asJson)
+       }   
+
+  def getResponse (modelid:Int, page:Int, pageSize:Int,  company:String, call:(Int, Int, Int, String) =>F[List[Customer]]
+           , service: CustomerService[F]) =
+         PaginationValidator.validate(page, pageSize) match {
+            case Valid(pagination) =>
+                val (from, until) = pagination.range
+                for {
+                    retrieved <- call(modelid, from, until, company)
+                    hasNext = retrieved.size > until
+                    list = if (hasNext) retrieved.init else retrieved
+                    trx <- list.traverse(s => bankAccounts(s, company, service))
+                    response <- Ok("{ \"hits\": " + trx.asJson + " }")
+                } yield response 
+           case Invalid(errors) =>
+          BadRequest(ErrorsJson.from(errors).asJson)
+       } 
+
   private def get(service: CustomerService[F]): AuthEndpoint[F, Auth] = {
+
     case GET -> Root / "bankacc" / id asAuthed user =>
       for {
-        bankaccounts <- service.getBankAccounts(id, user.company)
-        response <- Ok(bankaccounts.asJson)
+        // _ < - println("id"+id)
+        bankaccounts <- { println("id" + id); service.getBankAccounts(id, user.company) }
+        response <- {
+          println("bankaccounts.asJson " + bankaccounts.asJson); Ok("{ \"hits\": " + bankaccounts.asJson + " }")
+        }
+        //response <- Ok(bankaccounts.asJson)
       } yield response
     case GET -> Root / id asAuthed user =>
       service.getBy(id, user.company).flatMap {
@@ -78,19 +109,7 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root / "custmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-      PaginationValidator.validate(page, pageSize) match {
-        case Valid(pagination) =>
-          val (from, until) = pagination.range
-          for {
-            retrieved <- service.getByModelId(modelid, from, until, user.company)
-            hasNext = retrieved.size > until
-            transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + transaction.asJson + " }")
-
-          } yield response
-        case Invalid(errors) =>
-          BadRequest(ErrorsJson.from(errors).asJson)
-      }
+       getResponse(modelid, page, pageSize, user.company, service.getByModelId, service )
   }
   def endpoints(
     service: CustomerService[F],

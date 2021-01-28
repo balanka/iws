@@ -557,12 +557,60 @@ final case class Supplier(
   iban: String,
   vatcode: String,
   company: String,
-  modelid: Int = 3,
+  modelid: Int = 1,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now() //,
-  //bankaccounts: List[BankAccount] = Nil
+  postingdate: Instant = Instant.now(),
+  bankaccounts: List[BankAccount] = Nil
 ) extends IWS
+object Supplier {
+  type Supplier_Type = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    Int,
+    Instant,
+    Instant,
+    Instant
+  )
+  def apply(s: Supplier_Type): Supplier =
+    new Supplier(
+      s._1,
+      s._2,
+      s._3,
+      s._4,
+      s._5,
+      s._6,
+      s._7,
+      s._8,
+      s._9,
+      s._10,
+      s._11,
+      s._12,
+      s._13,
+      s._14,
+      s._15,
+      s._16,
+      s._17,
+      s._18,
+      s._19,
+      Nil
+    )
+  def apply(l: Option[Supplier_Type]): Option[Supplier] = l.map(s => apply(s))
+  def apply(l: List[Supplier_Type]): List[Supplier] = l.map(s => apply(s))
+}
 final case class Customer(
   id: String,
   name: String,
@@ -582,9 +630,58 @@ final case class Customer(
   modelid: Int = 3,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now() //,
-  //bankaccounts: List[BankAccount] = Nil
+  postingdate: Instant = Instant.now(),
+  bankaccounts: List[BankAccount] = Nil
 ) extends IWS
+object Customer {
+  type Customer_Type = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    Int,
+    Instant,
+    Instant,
+    Instant
+  )
+  def apply(s: Customer_Type): Customer =
+    new Customer(
+      s._1,
+      s._2,
+      s._3,
+      s._4,
+      s._5,
+      s._6,
+      s._7,
+      s._8,
+      s._9,
+      s._10,
+      s._11,
+      s._12,
+      s._13,
+      s._14,
+      s._15,
+      s._16,
+      s._17,
+      s._18,
+      s._19,
+      Nil
+    )
+  def apply(l: Option[Customer_Type]): Option[Customer] = l.map(c => apply(c))
+  def apply(l: List[Customer_Type]): List[Customer] = l.map(c => apply(c))
+
+}
 final case class FinancialsTransactionDetails(
   lid: Long,
   transid: Long,
