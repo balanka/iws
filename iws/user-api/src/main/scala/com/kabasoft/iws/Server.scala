@@ -92,7 +92,7 @@ object Server extends IOApp {
       financials_endpoints = FinancialsEndpoints.endpoints[F, HMACSHA256](FinancialsTransactionService(xa), routeAuth)
       journal_endpoints = JournalEndpoints.endpoints[F, HMACSHA256](JournalService(xa), routeAuth)
       bankstmt_endpoints = BankStatementEndpoints.endpoints[F, HMACSHA256](BankStatementService(xa), routeAuth)
-      bank_endpoints = BankEndpoints.endpoints[F, HMACSHA256](BankService(xa), CostCenterService(xa), routeAuth)
+      bank_endpoints = BankEndpoints.endpoints[F, HMACSHA256](BankService(xa), routeAuth)
       vat_endpoints = VatEndpoints.endpoints[F, HMACSHA256](VatService(xa), routeAuth)
       // endpoints = mtf_endpoints <+> acc_endpoints <+> art_endpoints <+> vat_endpoints <+>
       //  routes_endpoints <+> cc_endpoints <+> customer_endpoints <+> supplier_endpoints <+>
@@ -100,7 +100,7 @@ object Server extends IOApp {
       httpApp = Router(
         "/acc" -> acc_endpoints,
         "/art" -> art_endpoints,
-        //"/cc" -> cc_endpoints,
+        "/cc" -> cc_endpoints,
         "/cc" -> bank_endpoints,
         "/bank" -> bank_endpoints,
         "/bs" -> bankstmt_endpoints,
