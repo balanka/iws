@@ -30,12 +30,10 @@ trait Repository[-A, B] {
 private object SQL {
 
   object common {
-    def getBankAccounts(ownerId: String, companyId: String): Query0[BankAccount] = {
-      println(s"ownerId, $ownerId")
-      println(s"companyId, $companyId")
-      sql""" SELECT IBAN, BIC, OWNER, MODELID, company from BankAccount where 
+    def getBankAccounts(ownerId: String, companyId: String): Query0[BankAccount] = 
+      sql""" SELECT IBAN, BIC, OWNER, company, MODELID from BankAccount where 
       owner =${ownerId} AND company =${companyId}""".query
-    }
+    
   }
 
   object Article extends Repository[Article, Article] {
