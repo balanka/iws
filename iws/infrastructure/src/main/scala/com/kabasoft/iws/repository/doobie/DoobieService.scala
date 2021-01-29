@@ -422,15 +422,14 @@ case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Servic
 
   def create(item: Supplier): F[Int] = SQL.Supplier.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.Supplier.delete(id, company).run.transact(transactor)
+
   def list(from: Int, until: Int, company: String): F[List[Supplier]] =
     (for {
-      // f <-   ((id, c) => bankAccounts(id, c))
       transactions <- paginate(until - from, from)(SQL.Supplier.list(company))
         .to[List]
         .map(Supplier.apply)
-      //.map(ls => ls.map(s => s.copy(bankaccounts = f(s.id, company).transact(transactor))))
-      // } yield transactions.map(s => s.copy(bankaccounts = bankAccounts(s.id, company).transact(transactor))))
     } yield transactions).transact(transactor)
+
   def getBy(id: String, company: String): F[Option[Supplier]] =
     SQL.Supplier.getBy(id, company).option.map(s => Supplier.apply(s)).transact(transactor)
   def findSome(from: Int, until: Int, company: String, model: String*): F[List[Supplier]] =

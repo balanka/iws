@@ -94,12 +94,8 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
     case GET -> Root / "bankacc" / id asAuthed user =>
       for {
-        // _ < - println("id"+id)
-        bankaccounts <- { println("id" + id); service.getBankAccounts(id, user.company) }
-        response <- {
-          println("bankaccounts.asJson " + bankaccounts.asJson); Ok("{ \"hits\": " + bankaccounts.asJson + " }")
-        }
-        //response <- Ok(bankaccounts.asJson)
+        bankaccounts <- service.getBankAccounts(id, user.company)
+        response <-  Ok("{ \"hits\": " + bankaccounts.asJson + " }")
       } yield response
     case GET -> Root / id asAuthed user =>
       service.getBy(id, user.company).flatMap {
