@@ -20,7 +20,6 @@ import org.http4s.dsl.Http4sDsl
 import tsec.authentication.{AugmentedJWT, SecuredRequestHandler, asAuthed}
 import tsec.jwt.algorithms.JWTMacAlgo
 import scala.util.Try
-
 class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
   implicit val encodeInstant: Encoder[Instant] = Encoder.encodeString.contramap[Instant](_.toString)
