@@ -1,7 +1,5 @@
 package com.kabasoft.iws.endpoint
 
-import java.time.Instant
-
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect.Sync
 import cats.implicits._
@@ -13,19 +11,13 @@ import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.repository.doobie.{CustomerService, User}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder}
 import org.http4s.HttpRoutes
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import tsec.authentication.{AugmentedJWT, SecuredRequestHandler, asAuthed}
 import tsec.jwt.algorithms.JWTMacAlgo
-import scala.util.Try
-class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
-  implicit val encodeInstant: Encoder[Instant] = Encoder.encodeString.contramap[Instant](_.toString)
-  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emapTry { str =>
-    Try(Instant.parse(str))
-  }
+class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
   private def list(service: CustomerService[F]): AuthEndpoint[F, Auth] = {
     case req @ POST -> Root asAuthed _ =>
@@ -43,12 +35,12 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         updated <- service.update(masterfile, user.company)
         response <- Ok(updated.asJson)
       } yield response
-   
+
     case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-       getResponse(page, pageSize, user.company, service.list, service )
-  
+      getResponse(page, pageSize, user.company, service.list, service)
+
   }
 
   def bankAccounts(c: Customer, company: String, service: CustomerService[F]) =
@@ -57,44 +49,55 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       customer = c.copy(bankaccounts = bankAccouts_)
     } yield customer
 
-  def getResponse (page:Int, pageSize:Int,  company:String, call:(Int, Int, String) =>F[List[Customer]]
-           , service: CustomerService[F]) =
-         PaginationValidator.validate(page, pageSize) match {
-            case Valid(pagination) =>
-                val (from, until) = pagination.range
-                for {
-                    retrieved <- call(from, until, company)
-                    hasNext = retrieved.size > until
-                    list = if (hasNext) retrieved.init else retrieved
-                    trx <- list.traverse(s => bankAccounts(s, company, service))
-                    response <- Ok("{ \"hits\": " + trx.asJson + " }")
-                } yield response 
-           case Invalid(errors) =>
-          BadRequest(ErrorsJson.from(errors).asJson)
-       }   
+  def getResponse(
+    page: Int,
+    pageSize: Int,
+    company: String,
+    call: (Int, Int, String) => F[List[Customer]],
+    service: CustomerService[F]
+  ) =
+    PaginationValidator.validate(page, pageSize) match {
+      case Valid(pagination) =>
+        val (from, until) = pagination.range
+        for {
+          retrieved <- call(from, until, company)
+          hasNext = retrieved.size > until
+          list = if (hasNext) retrieved.init else retrieved
+          trx <- list.traverse(s => bankAccounts(s, company, service))
+          response <- Ok("{ \"hits\": " + trx.asJson + " }")
+        } yield response
+      case Invalid(errors) =>
+        BadRequest(ErrorsJson.from(errors).asJson)
+    }
 
-  def getResponse (modelid:Int, page:Int, pageSize:Int,  company:String, call:(Int, Int, Int, String) =>F[List[Customer]]
-           , service: CustomerService[F]) =
-         PaginationValidator.validate(page, pageSize) match {
-            case Valid(pagination) =>
-                val (from, until) = pagination.range
-                for {
-                    retrieved <- call(modelid, from, until, company)
-                    hasNext = retrieved.size > until
-                    list = if (hasNext) retrieved.init else retrieved
-                    trx <- list.traverse(s => bankAccounts(s, company, service))
-                    response <- Ok("{ \"hits\": " + trx.asJson + " }")
-                } yield response 
-           case Invalid(errors) =>
-          BadRequest(ErrorsJson.from(errors).asJson)
-       } 
+  def getResponse(
+    modelid: Int,
+    page: Int,
+    pageSize: Int,
+    company: String,
+    call: (Int, Int, Int, String) => F[List[Customer]],
+    service: CustomerService[F]
+  ) =
+    PaginationValidator.validate(page, pageSize) match {
+      case Valid(pagination) =>
+        val (from, until) = pagination.range
+        for {
+          retrieved <- call(modelid, from, until, company)
+          hasNext = retrieved.size > until
+          list = if (hasNext) retrieved.init else retrieved
+          trx <- list.traverse(s => bankAccounts(s, company, service))
+          response <- Ok("{ \"hits\": " + trx.asJson + " }")
+        } yield response
+      case Invalid(errors) =>
+        BadRequest(ErrorsJson.from(errors).asJson)
+    }
 
   private def get(service: CustomerService[F]): AuthEndpoint[F, Auth] = {
 
     case GET -> Root / "bankacc" / id asAuthed user =>
       for {
         bankaccounts <- service.getBankAccounts(id, user.company)
-        response <-  Ok("{ \"hits\": " + bankaccounts.asJson + " }")
+        response <- Ok("{ \"hits\": " + bankaccounts.asJson + " }")
       } yield response
     case GET -> Root / id asAuthed user =>
       service.getBy(id, user.company).flatMap {
@@ -104,7 +107,7 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root / "custmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-       getResponse(modelid, page, pageSize, user.company, service.getByModelId, service )
+      getResponse(modelid, page, pageSize, user.company, service.getByModelId, service)
   }
   def endpoints(
     service: CustomerService[F],
