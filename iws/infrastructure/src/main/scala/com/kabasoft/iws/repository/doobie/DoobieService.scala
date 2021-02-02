@@ -315,16 +315,15 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
   def update(model: Account, company: String): F[List[Int]] =
     getXX(SQL.Account.update, List(model), company).sequence.transact(transactor)
 
-  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String): F[Data] =
+  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String) =
     (for {
       list <- SQL.Account.listX(fromPeriod, toPeriod, company).map(Account.apply).to[List]
       period = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacs <- SQL.PeriodicAccountBalance.find4Period(company, List(period, period)).to[List]
     } yield {
       //val acc = Account.consolidate("9900", list.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0)))
-      val acc = Account.consolidate(accId, list, pacs)
-      val data = Account.consolidateData(acc)
-      data
+      val account = Account.consolidate(accId, list, pacs)
+      Account.unwrapDataTailRec(account) //.filterNot(acc => acc.id==accId)
     }).transact(transactor)
 
   def closePeriod(fromPeriod: Int, toPeriod: Int, company: String): F[List[Int]] =
@@ -391,7 +390,7 @@ case class ArticleService[F[_]: Sync](transactor: Transactor[F]) extends Service
 }
 
 case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Service[F, Customer] {
-  
+
   def bankAccounts(id: String, company: String) = SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
   def create(item: Customer): F[Int] = SQL.Customer.create(item).run.transact(transactor)
   def delete(id: String, company: String): F[Int] = SQL.Customer.delete(id, company).run.transact(transactor)
