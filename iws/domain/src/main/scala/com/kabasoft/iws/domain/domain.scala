@@ -289,6 +289,21 @@ object Account {
           .crediting(subALl.credit)
           .copy(subAccounts = sub)
     }
+
+  def unwrapDataTailRec(account: Account): List[Account] = {
+    //@tailrec
+    def unwrapData(res: List[Account]): List[Account] =
+      res.flatMap(
+        acc =>
+          acc.subAccounts.toList match {
+            case Nil => List(acc)
+            case (head: Account) :: tail => List(acc, head) ++ unwrapData(head.subAccounts.toList ++ tail)
+          }
+      )
+    val result = unwrapData(account.subAccounts.toList)
+    result
+  }
+
   def wrapAsData(account: Account): Data =
     account.subAccounts.toList match {
       case Nil => Data(BaseData(account))
@@ -507,14 +522,14 @@ final case class Bank(
   modelid: Int = 11,
   company: String
 ) extends IWS
-final case class BankAccount(iban: String, bic: String, owner: String,  company: String, modelId: Int = 12) extends IWS {
+final case class BankAccount(iban: String, bic: String, owner: String, company: String, modelId: Int = 12) extends IWS {
   def id: String = iban
   def name: String = owner
 
 }
 object BankAccount {
-  def apply(iban: String, bic: String, owner: String,  company: String) =
-    new BankAccount(iban, bic, owner,  company)
+  def apply(iban: String, bic: String, owner: String, company: String) =
+    new BankAccount(iban, bic, owner, company)
 }
 final case class CostCenter(
   id: String,
