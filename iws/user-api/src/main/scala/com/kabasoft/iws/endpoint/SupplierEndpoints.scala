@@ -39,7 +39,7 @@ class SupplierEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-       getResponse(page, pageSize, user.company, service.list, service )
+      getResponse(page, pageSize, user.company, service.list, service)
   }
 
   def bankAccounts(s: Supplier, company: String, service: SupplierService[F]) =
@@ -48,38 +48,49 @@ class SupplierEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       supplier = s.copy(bankaccounts = bankAccouts_)
     } yield supplier
 
-  def getResponse (page:Int, pageSize:Int,  company:String, call:(Int, Int, String) =>F[List[Supplier]]
-           , service: SupplierService[F]) =
-         PaginationValidator.validate(page, pageSize) match {
-            case Valid(pagination) =>
-                val (from, until) = pagination.range
-                for {
-                    retrieved <- call(from, until, company)
-                    hasNext = retrieved.size > until
-                    list = if (hasNext) retrieved.init else retrieved
-                    trx <- list.traverse(s => bankAccounts(s, company, service))
-                    response <- Ok("{ \"hits\": " + trx.asJson + " }")
-                } yield response 
-           case Invalid(errors) =>
-          BadRequest(ErrorsJson.from(errors).asJson)
-       }   
+  def getResponse(
+    page: Int,
+    pageSize: Int,
+    company: String,
+    call: (Int, Int, String) => F[List[Supplier]],
+    service: SupplierService[F]
+  ) =
+    PaginationValidator.validate(page, pageSize) match {
+      case Valid(pagination) =>
+        val (from, until) = pagination.range
+        for {
+          retrieved <- call(from, until, company)
+          hasNext = retrieved.size > until
+          list = if (hasNext) retrieved.init else retrieved
+          trx <- list.traverse(s => bankAccounts(s, company, service))
+          response <- Ok("{ \"hits\": " + trx.asJson + " }")
+        } yield response
+      case Invalid(errors) =>
+        BadRequest(ErrorsJson.from(errors).asJson)
+    }
 
-  def getResponse (modelid:Int, page:Int, pageSize:Int,  company:String, call:(Int, Int, Int, String) =>F[List[Supplier]]
-           , service: SupplierService[F]) =
-         PaginationValidator.validate(page, pageSize) match {
-            case Valid(pagination) =>
-                val (from, until) = pagination.range
-                for {
-                    retrieved <- call(modelid, from, until, company)
-                    hasNext = retrieved.size > until
-                    list = if (hasNext) retrieved.init else retrieved
-                    trx <- list.traverse(s => bankAccounts(s, company, service))
-                    response <- Ok("{ \"hits\": " + trx.asJson + " }")
-                } yield response 
-           case Invalid(errors) =>
-          BadRequest(ErrorsJson.from(errors).asJson)
-       }            
-  
+  def getResponse(
+    modelid: Int,
+    page: Int,
+    pageSize: Int,
+    company: String,
+    call: (Int, Int, Int, String) => F[List[Supplier]],
+    service: SupplierService[F]
+  ) =
+    PaginationValidator.validate(page, pageSize) match {
+      case Valid(pagination) =>
+        val (from, until) = pagination.range
+        for {
+          retrieved <- call(modelid, from, until, company)
+          hasNext = retrieved.size > until
+          list = if (hasNext) retrieved.init else retrieved
+          trx <- list.traverse(s => bankAccounts(s, company, service))
+          response <- Ok("{ \"hits\": " + trx.asJson + " }")
+        } yield response
+      case Invalid(errors) =>
+        BadRequest(ErrorsJson.from(errors).asJson)
+    }
+
   private def get(service: SupplierService[F]): AuthEndpoint[F, Auth] = {
     case GET -> Root / "bankacc" / id asAuthed user =>
       for {
@@ -94,7 +105,7 @@ class SupplierEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root / "supmd" / IntVar(modelid) :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-        getResponse(modelid, page, pageSize, user.company, service.getByModelId, service )
+      getResponse(modelid, page, pageSize, user.company, service.getByModelId, service)
   }
   def endpoints(
     service: SupplierService[F],

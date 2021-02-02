@@ -1,5 +1,4 @@
 package com.kabasoft.iws.endpoint
-import java.time.Instant
 import cats.data.Validated.{Invalid, Valid}
 import cats.effect.Sync
 import cats.implicits._
@@ -11,21 +10,14 @@ import com.kabasoft.iws.pagination.PaginationValidator
 import com.kabasoft.iws.repository.doobie.{User, VatService}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder}
 import org.http4s.{EntityDecoder, HttpRoutes}
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import tsec.authentication.{AugmentedJWT, SecuredRequestHandler, asAuthed}
 import tsec.jwt.algorithms.JWTMacAlgo
 
-import scala.util.Try
-
 class VatEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
-  implicit val encodeInstant: Encoder[Instant] = Encoder.encodeString.contramap[Instant](_.toString)
-  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emapTry { str =>
-    Try(Instant.parse(str))
-  }
   implicit val vatDecoder: EntityDecoder[F, Vat] = jsonOf[F, Vat]
 
   private def list(service: VatService[F]): AuthEndpoint[F, Auth] = {

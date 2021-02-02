@@ -13,20 +13,11 @@ import org.http4s.{EntityDecoder, HttpRoutes}
 import io.circe.syntax._
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
-import io.circe.{Decoder, Encoder}
-import java.time.Instant
 import com.kabasoft.iws.auth.Auth
 import tsec.authentication.{AugmentedJWT, SecuredRequestHandler, asAuthed}
 import tsec.jwt.algorithms.JWTMacAlgo
-
-import scala.util.Try
-
 class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
-  implicit val encodeInstant: Encoder[Instant] = Encoder.encodeString.contramap[Instant](_.toString)
-  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emapTry { str =>
-    Try(Instant.parse(str))
-  }
   implicit val accountDecoder: EntityDecoder[F, Account] = jsonOf[F, Account]
 
   private def list(service: AccountService[F]): AuthEndpoint[F, Auth] = {
@@ -69,7 +60,7 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       val toPeriod = to.toInt
       for {
         account <- service.getBalances(acc, fromPeriod, toPeriod, user.company)
-        response <- Ok("{\"data\":[ " + account.asJson + "]}")
+        response <- Ok("{ \"hits\": " + account.asJson + " }")
       } yield response
 
     case GET -> Root / "close" / from / to asAuthed user =>
