@@ -315,6 +315,14 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
   def update(model: Account, company: String): F[List[Int]] =
     getXX(SQL.Account.update, List(model), company).sequence.transact(transactor)
 
+  def getParents(id: String, accList: List[Account]) =
+    accList.filter(acc => acc.id == id)
+
+  def copyIDebitICredit(account: Account, accList: List[PeriodicAccountBalance]) =
+    accList.find(_.account == account.id) match {
+      case Some(acc) => List(account.copy(idebit = acc.idebit, icredit = acc.icredit))
+      case None => List.empty[Account]
+    }
   def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String) =
     (for {
       list <- SQL.Account.listX(fromPeriod, toPeriod, company).map(Account.apply).to[List]
@@ -322,7 +330,18 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
       pacs <- SQL.PeriodicAccountBalance.find4Period(company, List(period, period)).to[List]
     } yield {
       //val acc = Account.consolidate("9900", list.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0)))
+      //val accountList = list.flatMap(acc=>copyIDebitICredit(acc,pacs))
+      //val ids = accountList.groupBy(_.account)
+      // .map({ case (k, _) => k })
+      // .toSet.toList
+
+      //val listAcc = ids.flatMap(getParents(_, list))
       val account = Account.consolidate(accId, list, pacs)
+      //val account = Account.consolidate(accId, accountList, pacs)
+      // println("accountList<<"+accId + ">>"+accountList)
+      // val result= listAcc++accountList
+      // println("result<<"+accId + ">>"+result)
+      // result
       Account.unwrapDataTailRec(account) //.filterNot(acc => acc.id==accId)
     }).transact(transactor)
 

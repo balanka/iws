@@ -342,19 +342,18 @@ private object SQL {
     def delete(id: String, company: String): Update0 =
       sql"""DELETE FROM account WHERE ID = $id AND COMPANY= ${company} """.update
 
-    def update(model: Account, company: String): Update0 = {
-      println("model: " + model)
+    def update(model: Account, company: String): Update0 =
+      //println("model: " + model)
       sql"""Update account set  NAME =${model.name}, DESCRIPTION=${model.description}
         , posting_date =${model.postingdate}, modified_date =${model.changedate}, enter_date = ${model.enterdate}
         , company =${model.company}, account =${model.account}, isDebit =${model.isDebit}, balancesheet =${model.balancesheet}
          where id =${model.id} AND COMPANY = ${company}""".update
-    }
 
   }
 
   object PeriodicAccountBalance extends Repository[PeriodicAccountBalance, PeriodicAccountBalance] {
     def create(item: PeriodicAccountBalance): Update0 = {
-      println("item>>>>" + item)
+      //println("item>>>>" + item)
       sql"""INSERT INTO periodic_account_balance (ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid) VALUES (
               ${item.id}, ${item.account}, ${item.period}, ${item.idebit}, ${item.icredit}, ${item.debit}, ${item.credit}
              , ${item.company}, ${item.currency}, ${item.modelid} )""".update

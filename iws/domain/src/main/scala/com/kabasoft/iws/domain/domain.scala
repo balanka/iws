@@ -258,12 +258,13 @@ object Account {
     }
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
     accMap.get(account.id) match {
-      case Some(acc) =>
-        account.copy(subAccounts = account.subAccounts ++ (group(acc).map(x => addSubAccounts(x, accMap))))
+      case Some(accList) =>
+        //account.copy(subAccounts = account.subAccounts ++ (group(accList).map(x => addSubAccounts(x, accMap))))
+        account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
       case None =>
         if (account.subAccounts.size > 0)
           account.copy(
-            subAccounts = account.subAccounts ++ (group(account.subAccounts.toList).map(x => addSubAccounts(x, accMap)))
+            subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
           )
         else account
     }
@@ -281,7 +282,7 @@ object Account {
         )
       case rest @ _ =>
         val sub = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
-        val subALl = sub.toList.combineAll
+        val subALl = sub.toList.combineAll(parentXAccountMonoid)
         account
           .idebiting(subALl.idebit)
           .icrediting(subALl.icredit)
@@ -296,12 +297,11 @@ object Account {
       res.flatMap(
         acc =>
           acc.subAccounts.toList match {
-            case Nil => List(acc)
-            case (head: Account) :: tail => List(acc, head) ++ unwrapData(head.subAccounts.toList ++ tail)
+            case Nil => if (acc.balance == 0.0 && acc.subAccounts.isEmpty) List.empty[Account] else List(acc)
+            case (head: Account) :: tail => List(acc, head) ++ unwrapData(tail)
           }
       )
-    val result = unwrapData(account.subAccounts.toList)
-    result
+    unwrapData(account.subAccounts.toList)
   }
 
   def wrapAsData(account: Account): Data =
@@ -317,17 +317,17 @@ object Account {
       case account :: _ => account
     }
 
-  def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account =
+  def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
+    val accMap = accList.groupBy(_.account)
     accList.find(x => x.id == accId) match {
       case Some(acc) =>
-        val accMap = accList.groupBy(_.account)
-        val x: Account = List(acc)
-          .foldMap(addSubAccounts(_, accMap))(parentXAccountMonoid)
-          .copy(id = accId)
-        val y = List(x).foldMap(getAllSubBalances(_, pacs))(parentXAccountMonoid)
-        removeSubAccounts(y.copy(id = acc.id))
+        val x: Account = addSubAccounts(acc, accMap) //List(acc)
+        val y = getAllSubBalances(x, pacs)
+        val z = removeSubAccounts(y.copy(id = acc.id))
+        z
       case None => Account.dummy
     }
+  }
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match {
