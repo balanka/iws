@@ -352,12 +352,10 @@ private object SQL {
   }
 
   object PeriodicAccountBalance extends Repository[PeriodicAccountBalance, PeriodicAccountBalance] {
-    def create(item: PeriodicAccountBalance): Update0 = {
-      //println("item>>>>" + item)
+    def create(item: PeriodicAccountBalance): Update0 =
       sql"""INSERT INTO periodic_account_balance (ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid) VALUES (
               ${item.id}, ${item.account}, ${item.period}, ${item.idebit}, ${item.icredit}, ${item.debit}, ${item.credit}
              , ${item.company}, ${item.currency}, ${item.modelid} )""".update
-    }
 
     def getBy(id: String, company: String): Query0[PeriodicAccountBalance] = sql"""
      SELECT ID, ACCOUNT, PERIOD, IDEBIT, ICREDIT, DEBIT, CREDIT,  company, CURRENCY, modelid
