@@ -22,7 +22,7 @@ ThisBuild / scalacOptions ++= Seq(
 
 val catsVersion = "2.1.1"
 //val catsEffectVersion = "2.0.0" //"1.3.0"
-val http4sVersion = "0.21.16"
+val http4sVersion = "0.21.18"
 val circeVersion = "0.13.0"
 val circeGenericVersion = "0.13.0"
 val circeConfigVersion = "0.7.0"
