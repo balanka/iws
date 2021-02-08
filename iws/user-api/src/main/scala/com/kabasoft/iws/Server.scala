@@ -101,7 +101,6 @@ object Server extends IOApp {
         "/acc" -> acc_endpoints,
         "/art" -> art_endpoints,
         "/cc" -> cc_endpoints,
-        "/cc" -> bank_endpoints,
         "/bank" -> bank_endpoints,
         "/bs" -> bankstmt_endpoints,
         "/comp" -> comp_endpoints,
