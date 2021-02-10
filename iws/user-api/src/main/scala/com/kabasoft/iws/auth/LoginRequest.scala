@@ -15,17 +15,22 @@ final case class SignupRequest(
   email: String,
   password: String,
   phone: String,
+  role: Role,
+  menu: String = "",
+  modelid:Int =111,
   company: String,
-  role: Role
+
 ) {
   def asUser[A](hashedPassword: PasswordHash[A]): User = User(
     userName,
     firstName,
     lastName,
-    email,
     hashedPassword.toString,
     phone,
-    company,
-    role = role
-  )
+    email,
+    role,
+    menu,
+    modelid,
+    company)
 }
+

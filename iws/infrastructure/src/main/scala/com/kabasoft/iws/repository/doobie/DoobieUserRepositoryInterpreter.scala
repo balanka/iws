@@ -7,14 +7,14 @@ import com.kabasoft.iws.repository.UserRepository
 import com.kabasoft.iws.repository.doobie.SQLPagination._
 import doobie._
 import doobie.implicits._
-import io.circe.parser.decode
-import io.circe.syntax._
+//import io.circe.parser.decode
+//import io.circe.syntax._
 import tsec.authentication.IdentityStore
 
 private object UserSQL {
   // H2 does not support JSON data type.
-  implicit val roleMeta: Meta[Role] =
-    Meta[String].imap(decode[Role](_).leftMap(throw _).merge)(_.asJson.toString)
+  //implicit val roleMeta: Meta[Role] =
+   // Meta[String].imap(decode[Role](_).leftMap(throw _).merge)(_.asJson.toString)
 
   def insert(user: User): Update0 = sql"""
     INSERT INTO USERS (USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, COMPANY, ROLE)
@@ -22,26 +22,26 @@ private object UserSQL {
     , ${user.company}, ${user.role})""".update
 
   def update(user: User, id: Long): Update0 = {
-    println("user>>>>" + user + "id>>>" + id)
+     println("user>>>>" + user + "id>>>" + id)
     sql"""UPDATE USERS
     SET FIRST_NAME = ${user.firstName}, LAST_NAME = ${user.lastName},
         EMAIL = ${user.email}, HASH = ${user.hash}, PHONE = ${user.phone}, COMPANY= ${user.company}, ROLE = ${user.role}
-    WHERE ID = $id
+    WHERE ID = ${id}
   """.update
   }
 
   def select(userId: Long): Query0[User] = sql"""
-    SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.HASH, u.PHONE, u.COMPANY, u.ID, u.ROLE
-    , u.MODELID, string_agg(moduleid, ', ') AS menu
+      SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.HASH, u.PHONE, u.EMAIL, u.ROLE
+      ,  string_agg(moduleid, ', ') AS menu, u.MODELID,  u.COMPANY, u.ID
     FROM USERS U,  USERMENU m
-    WHERE u.ID = m.userid and u.ID= $userId group by u.id
+    WHERE u.ID = m.userid and u.ID= ${userId} group by u.id
   """.query
 
   def byUserName(userName: String): Query0[User] = sql"""
-    SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.HASH, u.PHONE, u.COMPANY, u.ID, u.ROLE
-    , u.MODELID, string_agg(moduleid, ', ') AS menu
+    SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.HASH, u.PHONE, u.EMAIL, u.ROLE
+    ,  string_agg(moduleid, ', ') AS menu, u.MODELID,  u.COMPANY, u.ID
     FROM USERS U,  USERMENU m
-    WHERE u.ID = m.userid and u.USER_NAME= $userName group by u.id
+    WHERE u.ID = m.userid and u.USER_NAME= ${userName} group by u.id
   """.query[User]
 
   def delete(userId: Long): Update0 = sql"""
@@ -49,8 +49,10 @@ private object UserSQL {
   """.update
 
   val selectAll: Query0[User] = sql"""
-    SELECT USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, COMPANY, ID, ROLE, MODELID
-    FROM USERS
+    SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.HASH, u.PHONE, u.EMAIL, u.ROLE
+    ,  string_agg(moduleid, ', ') AS menu, u.MODELID,  u.COMPANY, u.ID
+    FROM USERS U,  USERMENU m
+    WHERE u.ID = m.userid  group by u.id
   """.query
 }
 

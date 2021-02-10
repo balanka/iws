@@ -7,14 +7,14 @@ case class User(
   userName: String,
   firstName: String,
   lastName: String,
-  email: String,
   hash: String,
   phone: String,
-  company: String,
-  id: Option[Long] = None,
+  email: String,
   role: Role,
+  menu: String = "",
   modelid: Int = 111,
-  menu: String = ""
+  company: String,
+  id: Option[Long] = None
 )
 
 object User {
