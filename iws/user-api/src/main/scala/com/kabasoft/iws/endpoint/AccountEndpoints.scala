@@ -49,7 +49,8 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             account = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + account.asJson + " }")
+            response <- Ok(account.asJson)
+            //response <- Ok("{ \"hits\": " + account.asJson + " }")
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -60,7 +61,8 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       val toPeriod = to.toInt
       for {
         account <- service.getBalances(acc, fromPeriod, toPeriod, user.company)
-        response <- Ok("{ \"hits\": " + account.asJson + " }")
+        response <- Ok(account.asJson)
+       // response <- Ok("{ \"hits\": " + account.asJson + " }")
       } yield response
 
     case GET -> Root / "close" / from / to asAuthed user =>
@@ -68,7 +70,8 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       val toPeriod = to.toInt
       for {
         account <- service.closePeriod(fromPeriod, toPeriod, user.company)
-        response <- Ok("{\"hits\":" + account.asJson + "}")
+        response <- Ok(account.asJson)
+        //response <- Ok("{\"hits\":" + account.asJson + "}")
       } yield response
   }
 
@@ -89,7 +92,8 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + transaction.asJson + " }")
+            response <- Ok(transaction.asJson)
+            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
 
           } yield response
         case Invalid(errors) =>

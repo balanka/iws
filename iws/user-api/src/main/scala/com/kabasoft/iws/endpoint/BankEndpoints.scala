@@ -34,7 +34,7 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
 
     case req @ PATCH -> Root asAuthed user =>
       for {
-        bank <- { println("req.request.as[Bank]" + req.request.as[Bank]); req.request.as[Bank] }
+        bank <- req.request.as[Bank]
         updated <- service.update(bank, user.company)
         response <- Ok(updated.asJson)
       } yield response
@@ -42,8 +42,6 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root :? OffsetMatcher(maybePage) :? PageSizeMatcher(maybePageSize) asAuthed user =>
       val page = maybePage.getOrElse(DefaultPage)
       val pageSize = maybePageSize.getOrElse(DefaultPageSize)
-      println(s"page : $page  pageSize : $pageSize");
-
       PaginationValidator.validate(page, pageSize) match {
         case Valid(pagination) =>
           val (from, until) = pagination.range
@@ -51,8 +49,8 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             bank = if (hasNext) retrieved.init else retrieved
-            //response <- {println("bank.asJson "+bank.asJson); Ok("{ \"hits\": " + bank.asJson + " }")}
-            response <- Ok("{ \"hits\": " + bank.asJson + " }")
+            response <- Ok(bank.asJson)
+            //response <- Ok("{ \"hits\": " + bank.asJson + " }")
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -75,8 +73,9 @@ class BankEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           for {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
-            vat = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + vat.asJson + " }")
+            bank = if (hasNext) retrieved.init else retrieved
+            response <- Ok(bank.asJson)
+            //response <- Ok("{ \"hits\": " + vat.asJson + " }")
 
           } yield response
         case Invalid(errors) =>

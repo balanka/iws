@@ -63,7 +63,8 @@ class SupplierEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           hasNext = retrieved.size > until
           list = if (hasNext) retrieved.init else retrieved
           trx <- list.traverse(s => bankAccounts(s, company, service))
-          response <- Ok("{ \"hits\": " + trx.asJson + " }")
+          response <- Ok(trx.asJson )
+          //response <- Ok("{ \"hits\": " + trx.asJson + " }")
         } yield response
       case Invalid(errors) =>
         BadRequest(ErrorsJson.from(errors).asJson)
@@ -85,7 +86,8 @@ class SupplierEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           hasNext = retrieved.size > until
           list = if (hasNext) retrieved.init else retrieved
           trx <- list.traverse(s => bankAccounts(s, company, service))
-          response <- Ok("{ \"hits\": " + trx.asJson + " }")
+          response <- Ok(trx.asJson )
+          //response <- Ok("{ \"hits\": " + trx.asJson + " }")
         } yield response
       case Invalid(errors) =>
         BadRequest(ErrorsJson.from(errors).asJson)

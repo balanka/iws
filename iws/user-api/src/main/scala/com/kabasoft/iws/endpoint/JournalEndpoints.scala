@@ -48,7 +48,8 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             journal = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + journal.asJson + " }")
+            response <- Ok( journal.asJson )
+            //response <- Ok("{ \"hits\": " + journal.asJson + " }")
 
           } yield response
         case Invalid(errors) =>
@@ -65,8 +66,9 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         case Valid(pagination) =>
           val (from, until) = pagination.range
           for {
-            retrieved <- service.findSome(from, until, user.company, accountid, fromPriod, toPeriod)
-            response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
+            journal <- service.findSome(from, until, user.company, accountid, fromPriod, toPeriod)
+            response <- Ok( journal.asJson )
+            //response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
           } yield response
 
         case Invalid(errors) =>
@@ -87,8 +89,9 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           for {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
-            transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + transaction.asJson + " }")
+            journal = if (hasNext) retrieved.init else retrieved
+            response <- Ok( journal.asJson )
+            //response <- Ok("{ \"hits\": " + journal.asJson + " }")
 
           } yield response
         case Invalid(errors) =>

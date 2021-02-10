@@ -60,7 +60,8 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + transaction.asJson + " }")
+            response <- Ok( transaction.asJson )
+            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
 
           } yield response
         case Invalid(errors) =>
@@ -85,7 +86,8 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok("{ \"hits\": " + transaction.asJson + " }")
+            response <- Ok( transaction.asJson )
+            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
 
           } yield response
         case Invalid(errors) =>
