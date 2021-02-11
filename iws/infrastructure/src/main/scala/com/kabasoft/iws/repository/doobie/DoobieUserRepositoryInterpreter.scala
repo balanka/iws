@@ -12,9 +12,6 @@ import doobie.implicits._
 import tsec.authentication.IdentityStore
 
 private object UserSQL {
-  // H2 does not support JSON data type.
-  //implicit val roleMeta: Meta[Role] =
-   // Meta[String].imap(decode[Role](_).leftMap(throw _).merge)(_.asJson.toString)
 
   def insert(user: User): Update0 = sql"""
     INSERT INTO USERS (USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, COMPANY, ROLE)
@@ -22,7 +19,6 @@ private object UserSQL {
     , ${user.company}, ${user.role})""".update
 
   def update(user: User, id: Long): Update0 = {
-     println("user>>>>" + user + "id>>>" + id)
     sql"""UPDATE USERS
     SET FIRST_NAME = ${user.firstName}, LAST_NAME = ${user.lastName},
         EMAIL = ${user.email}, HASH = ${user.hash}, PHONE = ${user.phone}, COMPANY= ${user.company}, ROLE = ${user.role}
