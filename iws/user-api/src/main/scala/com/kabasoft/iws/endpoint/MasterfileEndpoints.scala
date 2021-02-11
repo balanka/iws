@@ -49,8 +49,6 @@ class MasterfileEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             hasNext = retrieved.size > until
             masterfile = if (hasNext) retrieved.init else retrieved
             response <- Ok(masterfile.asJson)
-            //response <- Ok("{ \"hits\": " + masterfile.asJson + " }")
-
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -73,10 +71,8 @@ class MasterfileEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok(transaction.asJson )
-            //response <- Ok("{ \"hits\": " + transaction.asJson + " }") //, `Access-Control-Allow-Origin`("*"))
-
-          } yield response
+            response <- Ok(transaction.asJson)
+           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
       }

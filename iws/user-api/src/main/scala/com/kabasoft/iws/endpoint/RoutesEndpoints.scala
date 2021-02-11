@@ -49,9 +49,7 @@ class RoutesEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             masterfile = if (hasNext) retrieved.init else retrieved
-            response <- Ok(masterfile.asJson )
-            //response <- Ok("{ \"hits\": " + masterfile.asJson + " }")
-
+            response <- Ok(masterfile.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -74,9 +72,7 @@ class RoutesEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok(transaction.asJson )
-            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
-
+            response <- Ok(transaction.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)

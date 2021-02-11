@@ -65,7 +65,6 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           list = if (hasNext) retrieved.init else retrieved
           trx <- list.traverse(s => bankAccounts(s, company, service))
           response <- Ok(trx.asJson)
-          //response <- Ok("{ \"hits\": " + trx.asJson + " }")
         } yield response
       case Invalid(errors) =>
         BadRequest(ErrorsJson.from(errors).asJson)
@@ -88,7 +87,6 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           list = if (hasNext) retrieved.init else retrieved
           trx <- list.traverse(s => bankAccounts(s, company, service))
           response <- Ok(trx.asJson)
-          //response <- Ok("{ \"hits\": " + trx.asJson + " }")
         } yield response
       case Invalid(errors) =>
         BadRequest(ErrorsJson.from(errors).asJson)
@@ -100,7 +98,6 @@ class CustomerEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       for {
         bankaccounts <- service.getBankAccounts(id, user.company)
         response <- Ok(bankaccounts.asJson)
-        //response <- Ok("{ \"hits\": " + bankaccounts.asJson + " }")
       } yield response
     case GET -> Root / id asAuthed user =>
       service.getBy(id, user.company).flatMap {

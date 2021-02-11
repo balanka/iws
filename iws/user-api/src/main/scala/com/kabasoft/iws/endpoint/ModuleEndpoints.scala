@@ -49,8 +49,7 @@ class ModuleEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             vat = if (hasNext) retrieved.init else retrieved
-            response <- Ok(vat.asJson )
-            //response <- Ok("{ \"hits\": " + vat.asJson + " }")
+            response <- Ok(vat.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -74,9 +73,7 @@ class ModuleEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             vat = if (hasNext) retrieved.init else retrieved
-            response <- Ok(vat.asJson )
-            //response <- Ok("{ \"hits\": " + vat.asJson + " }")
-
+            response <- Ok(vat.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)

@@ -24,8 +24,7 @@ import tsec.authentication._
 class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   import com.kabasoft.iws.pagination.Pagination._
 
-  //implicit val userDecoder: EntityDecoder[F, User] = jsonOf
-  implicit val accountDecoder: EntityDecoder[F, User] = jsonOf[F, User]
+  implicit val userDecoder: EntityDecoder[F, User] = jsonOf[F, User]
   implicit val loginReqDecoder: EntityDecoder[F, LoginRequest] = jsonOf
   implicit val signupReqDecoder: EntityDecoder[F, SignupRequest] = jsonOf
 
@@ -36,7 +35,6 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
   ): HttpRoutes[F] =
     HttpRoutes.of[F] {
       case req @ POST -> Root / "login" =>
-
         val action = for {
           login <- EitherT.liftF(req.as[LoginRequest])
           name = login.userName
@@ -51,7 +49,7 @@ class UserEndpoints[F[_]: Sync, A, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             case None => throw new Exception("Impossible") // User is not properly modeled
             case Some(id) => EitherT.right[UserAuthenticationFailedError](auth.create(id))
           }
-        } yield  (user, token)
+        } yield (user, token)
 
         action.value.flatMap {
           case Right((user, token)) => Ok(user.asJson).map(auth.embed(_, token))

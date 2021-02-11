@@ -37,7 +37,6 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       } yield response
     case req @ PATCH -> Root / "post" asAuthed user =>
       for {
-        //transaction <- req.request.decodeJson[List[FinancialsTransaction]]
         ids <- req.request.decodeJson[List[Long]]
         updated <- service.postAll(ids, user.company)
         response <- Ok(updated.asJson)
@@ -60,9 +59,7 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok( transaction.asJson )
-            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
-
+            response <- Ok(transaction.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -86,9 +83,7 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
-            response <- Ok( transaction.asJson )
-            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
-
+            response <- Ok(transaction.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -103,7 +98,6 @@ class FinancialsEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         Auth.adminOnly(list(service).orElse(get(service)))
       }
     }
-
     auth.liftService(authEndpoints)
   }
 }

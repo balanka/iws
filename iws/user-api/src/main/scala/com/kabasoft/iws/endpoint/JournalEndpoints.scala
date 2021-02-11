@@ -48,14 +48,11 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.list(from, until + 1, user.company)
             hasNext = retrieved.size > until
             journal = if (hasNext) retrieved.init else retrieved
-            response <- Ok( journal.asJson )
-            //response <- Ok("{ \"hits\": " + journal.asJson + " }")
-
+            response <- Ok(journal.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
       }
-
   }
 
   private def get(service: JournalService[F]): AuthEndpoint[F, Auth] = {
@@ -67,10 +64,8 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
           val (from, until) = pagination.range
           for {
             journal <- service.findSome(from, until, user.company, accountid, fromPriod, toPeriod)
-            response <- Ok( journal.asJson )
-            //response <- Ok("{ \"hits\": " + retrieved.asJson + " }")
+            response <- Ok(journal.asJson)
           } yield response
-
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
       }
@@ -90,9 +85,7 @@ class JournalEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             retrieved <- service.getByModelId(modelid, from, until, user.company)
             hasNext = retrieved.size > until
             journal = if (hasNext) retrieved.init else retrieved
-            response <- Ok( journal.asJson )
-            //response <- Ok("{ \"hits\": " + journal.asJson + " }")
-
+            response <- Ok(journal.asJson)
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
