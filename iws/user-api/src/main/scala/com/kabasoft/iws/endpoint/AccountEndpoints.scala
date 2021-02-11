@@ -50,7 +50,6 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             hasNext = retrieved.size > until
             account = if (hasNext) retrieved.init else retrieved
             response <- Ok(account.asJson)
-            //response <- Ok("{ \"hits\": " + account.asJson + " }")
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -62,7 +61,6 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       for {
         account <- service.getBalances(acc, fromPeriod, toPeriod, user.company)
         response <- Ok(account.asJson)
-       // response <- Ok("{ \"hits\": " + account.asJson + " }")
       } yield response
 
     case GET -> Root / "close" / from / to asAuthed user =>
@@ -71,7 +69,6 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
       for {
         account <- service.closePeriod(fromPeriod, toPeriod, user.company)
         response <- Ok(account.asJson)
-        //response <- Ok("{\"hits\":" + account.asJson + "}")
       } yield response
   }
 
@@ -93,8 +90,6 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok(transaction.asJson)
-            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
-
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -110,7 +105,6 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
         Auth.adminOnly(list(service).orElse(get(service)))
       }
     }
-
     auth.liftService(authEndpoints)
   }
 }
