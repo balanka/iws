@@ -50,7 +50,6 @@ class ArticleEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             hasNext = retrieved.size > until
             article = if (hasNext) retrieved.init else retrieved
             response <- Ok(article.asJson)
-
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
@@ -75,8 +74,6 @@ class ArticleEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok(transaction.asJson)
-            //response <- Ok("{ \"hits\": " + transaction.asJson + " }")
-
           } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
