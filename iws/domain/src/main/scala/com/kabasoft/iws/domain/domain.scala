@@ -522,7 +522,7 @@ final case class Bank(
   modelid: Int = 11,
   company: String
 ) extends IWS
-final case class BankAccount(iban: String, bic: String, owner: String, company: String, modelId: Int = 12) extends IWS {
+final case class BankAccount(iban: String, bic: String, owner: String, company: String, modelid: Int = 12) extends IWS {
   def id: String = iban
   def name: String = owner
 
