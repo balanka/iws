@@ -35,6 +35,42 @@ private object SQL {
       owner =${ownerId} AND company =${companyId}""".query
   }
 
+  object BankAccount extends Repository[BankAccount, BankAccount]{
+
+    def create(item: BankAccount): Update0 =
+      sql"""INSERT INTO bankaccount (IBAN, BIC, OWNER, MODELID, COMPANY) VALUES
+        (${item.iban}, ${item.bic}, ${item.owner},  ${item.modelid}, ${item.company})""".update
+
+    def getBy(id: String, company: String): Query0[BankAccount] =
+      sql""" SELECT IBAN, BIC, OWNER, company, MODELID from BankAccount
+     WHERE IBAN = ${id} AND COMPANY=${company} ORDER BY  IBAN ASC""".query
+
+    def getByModelId(modelid: Int, company: String): Query0[BankAccount] =
+      sql""" SELECT IBAN, BIC, OWNER, company, MODELID from BankAccount
+    WHERE modelid = ${modelid} AND COMPANY=${company} ORDER BY  IBAN ASC""".query
+
+    def findSome(company: String, model: String*): Query0[BankAccount] =  sql"""
+        SELECT IBAN, BIC, OWNER, company, MODELID from
+     FROM BankAccount WHERE  COMPANY=${company} ORDER BY  id ASC """.query
+
+    def list(company: String): Query0[BankAccount] = sql"""
+     SELECT id, name, description, modelid, parent,  price, stocked
+     FROM article WHERE  COMPANY=${company} ORDER BY id ASC """.query
+
+    def delete(ids:List[(String, String,String)]):List[Update0] = ids.map( delete(_))
+
+    def delete(id:(String, String, String)): Update0 =
+      sql"""DELETE FROM bankaccount
+           |WHERE IBAN = ${id._1} AND OWNER =${id._2} AND COMPANY=${id._3}""".update
+
+    def delete(iban: String,  company:String): Update0 = delete( (iban,"", company))
+
+    def update(model: BankAccount, company: String): Update0 = sql"""
+         Update bankaccount set IBAN = ${model.iban}, OWNER = ${model.owner}, BIC =${model.bic}
+          where  OWNER = ${model.owner} AND COMPANY=${company} """.update
+
+  }
+
   object Article extends Repository[Article, Article] {
     def create(item: Article): Update0 =
       sql"""INSERT INTO article (ID, NAME, DESCRIPTION, MODELID, PARENT, PRICE, STOCKED, COMPANY) VALUES

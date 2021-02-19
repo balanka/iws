@@ -461,8 +461,23 @@ case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Servic
       .map(s => com.kabasoft.iws.domain.Supplier.apply(s))
       .transact(transactor)
 
-  def update(model: Supplier, company: String): F[List[Int]] =
-    getXX(SQL.Supplier.update, List(model), company).sequence.transact(transactor)
+  def update(model: Supplier, company: String): F[List[Int]] = {
+
+    def insertPredicate(bankAccounts: BankAccount) = bankAccounts.owner =="-1"
+    def deletePredicate(bankAccounts: BankAccount) = bankAccounts.bic == "-0"
+    val splitted = model.bankaccounts.partition(insertPredicate(_))
+    val splitted2 = splitted._2.partition(deletePredicate(_))
+    val newBankAccounts:List[BankAccount] = splitted._1.map(acc=>acc.copy(owner=model.id))
+    val deletedBankAccounts:List[(String, String, String)] = splitted2._1.map(acc=>( acc.iban, model.id, acc.company ))
+    val updatedBankAccounts:List[BankAccount]= splitted2._2
+    val deleted:List[ConnectionIO[Int]]  = deletedBankAccounts.map(SQL.BankAccount.delete(_)).map(_.run)
+    val result: List[ConnectionIO[Int]] =deleted++
+        getXX(SQL.BankAccount.update, updatedBankAccounts, company) ++
+        getXX(SQL.BankAccount.create, newBankAccounts) ++
+        getXX(SQL.Supplier.update, List(model), company)++deleted
+    result.sequence.transact(transactor)
+
+  }
 
   def getBankAccounts(id: String, company: String): F[List[BankAccount]] =
     SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
@@ -598,7 +613,7 @@ case class FinancialsTransactionService[F[_]: Sync](transactor: Transactor[F])
         .traverse(ftr => SQL.FinancialsTransaction.create3Supplier(ftr))
       receivables <- transactions
         .filter(m => m.modelid == 122)
-        .traverse(ftr => SQL.FinancialsTransaction.create3Customer(ftr))
+        .traverse(ftr => SQL.FinancialsTransaction.create3Supplier(ftr))
 
     } yield payables.flatten ++ receivables.flatten).transact(transactor)
 
