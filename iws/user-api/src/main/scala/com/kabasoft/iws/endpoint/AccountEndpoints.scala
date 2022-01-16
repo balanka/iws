@@ -66,10 +66,12 @@ class AccountEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
     case GET -> Root / "close" / from / to asAuthed user =>
       val fromPeriod = from.toInt
       val toPeriod = to.toInt
-      for {
+      val resp = (for {
         account <- service.closePeriod(fromPeriod, toPeriod, user.company)
         response <- Ok(account.asJson)
-      } yield response
+      } yield response)
+      println("responseresponseresponseresponse<<>>" + resp)
+      resp
   }
 
   private def get(service: AccountService[F]): AuthEndpoint[F, Auth] = {

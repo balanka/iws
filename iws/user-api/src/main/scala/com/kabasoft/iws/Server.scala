@@ -25,7 +25,6 @@ import com.kabasoft.iws.repository.doobie.{
   VatService
 }
 import cats.effect._
-
 import io.circe.config.parser
 import org.http4s.implicits._
 import org.http4s.server.{Router, Server => H4Server}
@@ -58,13 +57,14 @@ import com.kabasoft.iws.endpoint.{
 object Server extends IOApp {
 
   def createServer[F[_]: ContextShift: ConcurrentEffect: Timer]: Resource[F, H4Server[F]] =
+    //def createServer[F[_]: ConcurrentEffect](implicit T: Timer[F]): Stream[F, Nothing] =
     for {
-      config <- Resource.liftF(parser.decodePathF[F, IwsConfig]("iws"))
+      config <- Resource.eval(parser.decodePathF[F, IwsConfig]("iws"))
       serverEc <- ExecutionContexts.cachedThreadPool[F]
       connEc <- ExecutionContexts.fixedThreadPool[F](config.db.connections.poolSize)
       txnEc <- ExecutionContexts.cachedThreadPool[F]
       xa <- DatabaseConfig.dbTransactor(config.db, connEc, Blocker.liftExecutionContext(txnEc))
-      key <- Resource.liftF(HMACSHA256.generateKey[F])
+      key <- Resource.eval(HMACSHA256.generateKey[F])
       authRepo = DoobieAuthRepositoryInterpreter[F, HMACSHA256](key, xa)
       userRepo = DoobieUserRepositoryInterpreter[F](xa)
       userValidation = UserValidationInterpreter[F](userRepo)
@@ -115,11 +115,14 @@ object Server extends IOApp {
         "/users" -> userEndpoints,
         "/vat" -> vat_endpoints
       ).orNotFound
+      // } yield httpApp
+
       server <- BlazeServerBuilder[F](serverEc)
         .bindHttp(config.server.port, config.server.host)
         .withHttpApp(CORS(httpApp))
         .resource
     } yield server
 
+  // def run(args: List[String]): IO[ExitCode] = stream[IO].compile.drain.as(ExitCode.Success)
   def run(args: List[String]): IO[ExitCode] = createServer.use(_ => IO.never).as(ExitCode.Success)
 }

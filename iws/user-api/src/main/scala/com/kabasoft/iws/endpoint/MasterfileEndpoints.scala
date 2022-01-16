@@ -72,7 +72,7 @@ class MasterfileEndpoints[F[_]: Sync, Auth: JWTMacAlgo] extends Http4sDsl[F] {
             hasNext = retrieved.size > until
             transaction = if (hasNext) retrieved.init else retrieved
             response <- Ok(transaction.asJson)
-           } yield response
+          } yield response
         case Invalid(errors) =>
           BadRequest(ErrorsJson.from(errors).asJson)
       }
