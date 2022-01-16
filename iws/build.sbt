@@ -1,7 +1,8 @@
 
 ThisBuild / organization := "com.kabasoft"
-ThisBuild / scalaVersion := "2.13.3"
-ThisBuild / version      := "0.4.0-SNAPSHOT"
+//ThisBuild / scalaVersion := "2.13.7"
+ThisBuild / version      := "0.7.0-SNAPSHOT"
+crossScalaVersions := Seq( "2.13.8")
 
 ThisBuild / scalafmtOnCompile := true
 
@@ -19,21 +20,24 @@ ThisBuild / scalacOptions ++= Seq(
   "-deprecation"
   //"-Ypartial-unification"
 )
-
-val catsVersion = "2.1.1"
+ //val ZioJsonVersion = "0.1.4+7-888a3c9d-SNAPSHOT" //"0.1.3+8-6eb41b5a-SNAPSHOT"
+val catsVersion = "2.7.0"
+//val catsVersion ="2.7.0"
 //val catsEffectVersion = "2.0.0" //"1.3.0"
-val http4sVersion = "0.21.18"
-val circeVersion = "0.13.0"
-val circeGenericVersion = "0.13.0"
-val circeConfigVersion = "0.7.0"
+val http4sVersion = "0.21.24"
+val circeVersion = "0.14.1"
+val circeGenericVersion = "0.14.1"
+val circeConfigVersion = "0.8.0"
 val doobieVersion = "0.8.6"
 //val logbackVersion = "1.2.3"
 val logbackVersion ="1.3.0-alpha5"
-val EnumeratumCirceVersion = "1.6.1"
+val EnumeratumCirceVersion = "1.7.0"
+val Slf4jVersion = "1.7.30"
 val mockitoScalaVersion = "1.4.0-beta.8"
 val `zio-version`= "1.0.3" //"1.0-RC-5"
 val `zio-interop` = "2.2.0.1"
-val KindProjectorVersion = "0.11.0"
+//val KindProjectorVersion = "0.11.0"
+val KindProjectorVersion = "0.13.2"
 val LogbackVersion = "1.2.3"
 val ScalaCheckVersion = "1.14.3"
 val ScalaTestVersion = "3.2.0"
@@ -83,7 +87,6 @@ lazy val circeDependencies = Seq(
   "io.circe" %% "circe-parser"         % circeVersion,
   "io.circe" %% "circe-config"         % circeConfigVersion
 )
-
 addCompilerPlugin("org.typelevel" % "kind-projector" % KindProjectorVersion cross CrossVersion.full)
 
 
@@ -125,7 +128,9 @@ lazy val userAPI = project
      "dev.zio" %% "zio-test" % `zio-version` % "test",
      "dev.zio" %% "zio-test-sbt" % `zio-version` % "test",
      //"dev.zio" %% "zio-interop-shared" % `zio-version`,
-     "dev.zio" %% "zio-interop-cats" % `zio-interop`
+     "dev.zio" %% "zio-interop-cats" % `zio-interop`,
+    //"dev.zio"    %% "zio-json"                % ZioJsonVersion,
+    //"dev.zio"    %% "zio-json-interop-http4s" % ZioJsonVersion,
   ))
   .settings(Seq(
     fork in run := true,
