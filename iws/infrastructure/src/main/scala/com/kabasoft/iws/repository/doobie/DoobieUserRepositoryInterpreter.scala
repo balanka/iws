@@ -18,13 +18,12 @@ private object UserSQL {
     VALUES (${user.userName}, ${user.firstName}, ${user.lastName}, ${user.email}, ${user.hash}, ${user.phone}
     , ${user.company}, ${user.role})""".update
 
-  def update(user: User, id: Long): Update0 = {
+  def update(user: User, id: Long): Update0 =
     sql"""UPDATE USERS
     SET FIRST_NAME = ${user.firstName}, LAST_NAME = ${user.lastName},
         EMAIL = ${user.email}, HASH = ${user.hash}, PHONE = ${user.phone}, COMPANY= ${user.company}, ROLE = ${user.role}
     WHERE ID = ${id}
   """.update
-  }
 
   def select(userId: Long): Query0[User] = sql"""
       SELECT u.USER_NAME, u.FIRST_NAME, u.LAST_NAME, u.HASH, u.PHONE, u.EMAIL, u.ROLE

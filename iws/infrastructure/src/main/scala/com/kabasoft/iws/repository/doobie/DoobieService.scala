@@ -329,19 +329,7 @@ case class AccountService[F[_]: Sync](transactor: Transactor[F], bSheetAccId: St
       period = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacs <- SQL.PeriodicAccountBalance.find4Period(company, List(period, period)).to[List]
     } yield {
-      //val acc = Account.consolidate("9900", list.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0)))
-      //val accountList = list.flatMap(acc=>copyIDebitICredit(acc,pacs))
-      //val ids = accountList.groupBy(_.account)
-      // .map({ case (k, _) => k })
-      // .toSet.toList
-
-      //val listAcc = ids.flatMap(getParents(_, list))
       val account = Account.consolidate(accId, list, pacs)
-      //val account = Account.consolidate(accId, accountList, pacs)
-      // println("accountList<<"+accId + ">>"+accountList)
-      // val result= listAcc++accountList
-      // println("result<<"+accId + ">>"+result)
-      // result
       Account.unwrapDataTailRec(account) //.filterNot(acc => acc.id==accId)
     }).transact(transactor)
 
@@ -428,8 +416,23 @@ case class CustomerService[F[_]: Sync](transactor: Transactor[F]) extends Servic
       .map(Customer.apply)
       .transact(transactor)
 
-  def update(model: Customer, company: String): F[List[Int]] =
-    getXX(SQL.Customer.update, List(model), company).sequence.transact(transactor)
+  def update(model: Customer, company: String): F[List[Int]] = {
+    def insertPredicate(bankAccounts: BankAccount) = bankAccounts.owner == "-1"
+    def deletePredicate(bankAccounts: BankAccount) = bankAccounts.bic == "-0"
+
+    val splitted = model.bankaccounts.partition(insertPredicate(_))
+    val splitted2 = splitted._2.partition(deletePredicate(_))
+    val newBankAccounts: List[BankAccount] = splitted._1.map(acc => acc.copy(owner = model.id))
+    val deletedBankAccounts: List[(String, String, String)] = splitted2._1.map(acc => (acc.iban, model.id, acc.company))
+    val updatedBankAccounts: List[BankAccount] = splitted2._2
+    val deleted: List[ConnectionIO[Int]] = deletedBankAccounts.map(SQL.BankAccount.delete(_)).map(_.run)
+    val result: List[ConnectionIO[Int]] = deleted ++
+      getXX(SQL.BankAccount.update, updatedBankAccounts, company) ++
+      getXX(SQL.BankAccount.create, newBankAccounts) ++
+      getXX(SQL.Customer.update, List(model), company) ++ deleted
+    result.sequence.transact(transactor)
+  }
+
   def getBankAccounts(id: String, company: String): F[List[BankAccount]] =
     SQL.common.getBankAccounts(id, company).to[List].transact(transactor)
 }
@@ -463,18 +466,18 @@ case class SupplierService[F[_]: Sync](transactor: Transactor[F]) extends Servic
 
   def update(model: Supplier, company: String): F[List[Int]] = {
 
-    def insertPredicate(bankAccounts: BankAccount) = bankAccounts.owner =="-1"
+    def insertPredicate(bankAccounts: BankAccount) = bankAccounts.owner == "-1"
     def deletePredicate(bankAccounts: BankAccount) = bankAccounts.bic == "-0"
     val splitted = model.bankaccounts.partition(insertPredicate(_))
     val splitted2 = splitted._2.partition(deletePredicate(_))
-    val newBankAccounts:List[BankAccount] = splitted._1.map(acc=>acc.copy(owner=model.id))
-    val deletedBankAccounts:List[(String, String, String)] = splitted2._1.map(acc=>( acc.iban, model.id, acc.company ))
-    val updatedBankAccounts:List[BankAccount]= splitted2._2
-    val deleted:List[ConnectionIO[Int]]  = deletedBankAccounts.map(SQL.BankAccount.delete(_)).map(_.run)
-    val result: List[ConnectionIO[Int]] =deleted++
-        getXX(SQL.BankAccount.update, updatedBankAccounts, company) ++
-        getXX(SQL.BankAccount.create, newBankAccounts) ++
-        getXX(SQL.Supplier.update, List(model), company)++deleted
+    val newBankAccounts: List[BankAccount] = splitted._1.map(acc => acc.copy(owner = model.id))
+    val deletedBankAccounts: List[(String, String, String)] = splitted2._1.map(acc => (acc.iban, model.id, acc.company))
+    val updatedBankAccounts: List[BankAccount] = splitted2._2
+    val deleted: List[ConnectionIO[Int]] = deletedBankAccounts.map(SQL.BankAccount.delete(_)).map(_.run)
+    val result: List[ConnectionIO[Int]] = deleted ++
+      getXX(SQL.BankAccount.update, updatedBankAccounts, company) ++
+      getXX(SQL.BankAccount.create, newBankAccounts) ++
+      getXX(SQL.Supplier.update, List(model), company) ++ deleted
     result.sequence.transact(transactor)
 
   }

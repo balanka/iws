@@ -35,7 +35,7 @@ private object SQL {
       owner =${ownerId} AND company =${companyId}""".query
   }
 
-  object BankAccount extends Repository[BankAccount, BankAccount]{
+  object BankAccount extends Repository[BankAccount, BankAccount] {
 
     def create(item: BankAccount): Update0 =
       sql"""INSERT INTO bankaccount (IBAN, BIC, OWNER, MODELID, COMPANY) VALUES
@@ -49,7 +49,7 @@ private object SQL {
       sql""" SELECT IBAN, BIC, OWNER, company, MODELID from BankAccount
     WHERE modelid = ${modelid} AND COMPANY=${company} ORDER BY  IBAN ASC""".query
 
-    def findSome(company: String, model: String*): Query0[BankAccount] =  sql"""
+    def findSome(company: String, model: String*): Query0[BankAccount] = sql"""
         SELECT IBAN, BIC, OWNER, company, MODELID from
      FROM BankAccount WHERE  COMPANY=${company} ORDER BY  id ASC """.query
 
@@ -57,13 +57,13 @@ private object SQL {
      SELECT id, name, description, modelid, parent,  price, stocked
      FROM article WHERE  COMPANY=${company} ORDER BY id ASC """.query
 
-    def delete(ids:List[(String, String,String)]):List[Update0] = ids.map( delete(_))
+    def delete(ids: List[(String, String, String)]): List[Update0] = ids.map(delete(_))
 
-    def delete(id:(String, String, String)): Update0 =
+    def delete(id: (String, String, String)): Update0 =
       sql"""DELETE FROM bankaccount
-           |WHERE IBAN = ${id._1} AND OWNER =${id._2} AND COMPANY=${id._3}""".update
+      |WHERE IBAN = ${id._1} AND OWNER =${id._2} AND COMPANY=${id._3}""".update
 
-    def delete(iban: String,  company:String): Update0 = delete( (iban,"", company))
+    def delete(iban: String, company: String): Update0 = delete((iban, "", company))
 
     def update(model: BankAccount, company: String): Update0 = sql"""
          Update bankaccount set IBAN = ${model.iban}, OWNER = ${model.owner}, BIC =${model.bic}

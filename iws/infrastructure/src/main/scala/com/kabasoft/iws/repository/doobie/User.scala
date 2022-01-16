@@ -13,13 +13,10 @@ case class User(
   role: Role,
   menu: String = "",
   modelid: Int = 111,
-  company: String,
+  company: String = "1000",
   id: Option[Long] = None
 )
 
 object User {
-  implicit def authRole[F[_]](implicit F: Applicative[F]): AuthorizationInfo[F, Role, User] =
-    new AuthorizationInfo[F, Role, User] {
-      def fetchInfo(u: User): F[Role] = F.pure(u.role)
-    }
+  implicit def authRole[F[_]](implicit F: Applicative[F]): AuthorizationInfo[F, Role, User] = u => F.pure(u.role)
 }

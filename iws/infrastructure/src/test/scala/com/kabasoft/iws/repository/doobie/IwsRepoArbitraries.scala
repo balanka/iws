@@ -23,17 +23,21 @@ trait IwsRepoArbitraries {
 
   implicit val role = Arbitrary[Role](Gen.oneOf(Role.values.toIndexedSeq))
 
+  val modelid: Int = 111
+  val company: String = "1000"
   implicit val user = Arbitrary[User] {
     for {
       userName <- userNameGen
       firstName <- arbitrary[String]
       lastName <- arbitrary[String]
       email <- arbitrary[String]
-      password <- arbitrary[String]
+      //password <- arbitrary[String]
       phone <- arbitrary[String]
       id <- Gen.option(Gen.posNum[Long])
+      hash <- arbitrary[String]
       role <- arbitrary[Role]
-    } yield User(userName, firstName, lastName, email, password, phone, id, role)
+      menu <- arbitrary[String]
+    } yield User(userName, firstName, lastName, hash, phone, email, role, menu, modelid, company, id)
   }
 
   case class AdminUser(value: User)

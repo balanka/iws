@@ -8,10 +8,9 @@ import com.kabasoft.iws.domain._
 
 trait ImportFunction[A <: IWS] {
 
-  val formatter = DateTimeFormatter.ofPattern("MM.dd.yyyy")
-  //val formatter: DateTimeFormatter = DateTimeFormatter
-  //  .ofPattern("yyyy.dd.mm.HH:mm:ss")
-  //.withZone(ZoneId.of("Europe/Berlin"))
+  //val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+  val formatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.of("Europe/Berlin"))
   //  .withZone(ZoneId.systemDefault());
   //val dateFormat1 = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
   //val dateFormat = new SimpleDateFormat("dd.MM.yyyy'T'HH:mm:ss'Z'")
@@ -21,7 +20,6 @@ trait ImportFunction[A <: IWS] {
       val r = s.substring(s.indexOf("\""), s.lastIndexOf("\"") + 1)
       val r2 = r.replaceAll("\"", "").replaceAll(",", " ")
       val ret = s.replace(r, r2)
-
       ret
     } else s
 
@@ -37,7 +35,7 @@ trait ImportFunction[A <: IWS] {
       .fromFile(file)(decoder)
       .getLines()
       .toList
-      .map(transform(_))
+      .map(_.replace("\"", ""))
       .map(_.split(FS).toList)
       .flatMap(l => getPF((l, company, iban)))
   def getObjects(
@@ -268,17 +266,35 @@ object ImportFunction {
 
   object ImportBankStatement extends ImportFunction[BankStatement] {
     def addYear(d: String): String = {
+      println("d>>>>>" + d)
+      println("dsubstring>>>>>" + d + ">>>>>" + d.substring(0, d.lastIndexOf(".")))
       val year = d.substring(d.lastIndexOf(".") + 1)
-      val newYear = ".20".concat(year)
-      val newDate = d.substring(0, d.lastIndexOf(".")).concat(newYear)
+      println("year>>>>>" + year)
+      val newYear = ".20".concat(year).concat(" 00:00:01")
+      println("newYear>>>>>" + newYear)
+      val newDate = d.substring(0, d.lastIndexOf(".")).concat(newYear).replaceAll("\"", "")
+      println("newDate>>>>>" + newDate)
       newDate
     }
-    def toInstant(date: String, formatter: DateTimeFormatter): Instant =
-      LocalDate.parse(date, formatter).atStartOfDay(ZoneId.systemDefault()).toInstant();
-    def parseAmount(amount: String, s: List[String]) = {
-      println("amount>>>>>" + amount)
+
+    def toInstant(date: String, formatter: DateTimeFormatter): Instant = {
+      println("date>>>>>" + date)
+      LocalDate.parse(date, formatter).atStartOfDay(ZoneId.of("Europe/Berlin")).toInstant()
+    };
+
+    def parseAmount(amounts: String, s: List[String]) = {
+      println("amounts>>>>>" + amounts)
       println("amount>>>>>SSSSSS" + s)
-      BigDecimal(amount.trim.replaceAll(",", ""))
+      //BigDecimal(amounts.trim)
+      val r = amounts.trim
+        .replace("\"", "")
+        .replace(".", "")
+        .replace(",", ".")
+      println("amount>>>>>RRRRRRR" + r)
+      val amount = BigDecimal(r)
+
+      println("amountx>>>>>SSSSSS" + amount)
+      amount
     }
 
     def getPF = new getPF1 {
@@ -413,9 +429,13 @@ Umsatz gebucht
             List(Left("default".toString))
           }
 
-         */
+           */
         }
-         */
+           */
+          case _ => {
+            printf("x default >>>>>> ")
+            List(Left("default".toString))
+          }
         }
     }
 
