@@ -142,7 +142,7 @@ final case class Account(
   account: String = "",
   isDebit: Boolean,
   balancesheet: Boolean,
-  currency: String,
+  currency: String = "EUR ",
   idebit: BigDecimal = BigDecimal(0),
   icredit: BigDecimal = BigDecimal(0),
   debit: BigDecimal = BigDecimal(0),
@@ -449,7 +449,7 @@ object PeriodicAccountBalance {
     new PeriodicAccountBalance(
       period.toString.concat(account),
       account,
-      period.toInt,
+      period,
       idebit,
       icredit,
       debit,
