@@ -22,17 +22,17 @@ object StreamApp extends zio.App {
     //.tap(putStrLn(_))
     .runDrain
 
-   def getStreamFromPath(path:String):ZStream[Blocking, Throwable, BankStatement] = ZStream
+   def getStreamFromPath(path:String, build:String =>BankStatement):ZStream[Blocking, Throwable, BankStatement] = ZStream
     .fromJavaStream(Files.walk(Paths.get(path)))
-    .filter(p => !Files.isDirectory(p) && p.toString().endsWith(extension))
+    .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
     .flatMap { files =>
       ZStream
         .fromFile(files)
         .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
         .filterNot(p => p.startsWith(HEADER))
-        .map(x=> BankStatement.from(x.replaceAll(CHAR, "")))
+        .map(x=> build(x.replaceAll(CHAR, "")))
     }
 
   def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] =
-    getStreamFromPath(path).runDrain.exitCode
+    getStreamFromPath(path, BankStatement.from).runDrain.exitCode
 }

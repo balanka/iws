@@ -2,8 +2,9 @@ package com.kabasoft.iws.domain
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import cats._
 import cats.implicits._
-import com.kabasoft.iws.domain.FinancialsTransaction.FinancialsTransaction_Type2
 import com.kabasoft.iws.domain.Account.Balance_Type
+import com.kabasoft.iws.domain.FinancialsTransaction.FinancialsTransaction_Type2
+//import com.kabasoft.iws.domain.Account.Balance_Typ
 import com.kabasoft.iws.domain.common._
 
 import java.text.NumberFormat
@@ -102,6 +103,9 @@ object common {
     "dummy",
     "dummy"
   )
+}
+trait build {
+  def from [A] (s:String ):A
 }
 case class Param(id: Long, modelid: Int)
 case class MasterfileId(value: String) extends AnyVal
@@ -932,6 +936,7 @@ final case class BankStatement(
 ) extends IWS {
   def id = bid.toString
   def name = depositor
+
 }
 object BankStatement {
   val CENTURY = "20"
@@ -940,25 +945,24 @@ object BankStatement {
   val zoneId = ZoneId.of( "Europe/Berlin" )
   val DATE_FORMAT = "dd.MM.yyyy"
   val FIELD_SEPARATOR = ';'
-  val NUMBER_FORMAT = NumberFormat.getInstance(Locale.GERMAN);
+  val NUMBER_FORMAT = NumberFormat.getInstance(Locale.GERMAN)
 
-   def   fullDate (partialDate:String):Instant = {
-       val index = partialDate.lastIndexOf(".")
-       val pYear= partialDate.substring(index+1)
-       val fullDate = partialDate.substring(0,index+1).concat(CENTURY.concat(pYear))
-      LocalDate.parse(fullDate, DateTimeFormatter.ofPattern(DATE_FORMAT))
-        .atStartOfDay(zoneId).toInstant
 
-   }
-
+  def   fullDate (partialDate:String):Instant = {
+    val index = partialDate.lastIndexOf(".")
+    val pYear= partialDate.substring(index+1)
+    val fullDate = partialDate.substring(0,index+1).concat(CENTURY.concat(pYear))
+    LocalDate.parse(fullDate, DateTimeFormatter.ofPattern(DATE_FORMAT))
+      .atStartOfDay(zoneId).toInstant
+  }
 
   def from(s:String ) = {
-   val values= s.split(FIELD_SEPARATOR)
+    val values= s.split(FIELD_SEPARATOR)
     val companyIban = values(0)
     val bid = -1L
     val date1_ = values(1)
     val date2 = values(2)
-     val date1 = if (!date1_.trim.isEmpty) date1_ else date2
+    val date1 = if (!date1_.trim.isEmpty) date1_ else date2
     val postingdate = fullDate(date1)
     val valuedate  = fullDate(date2)
     //val depositor = values(3)
@@ -970,14 +974,13 @@ object BankStatement {
     val amount_ = values(8).trim
     val amount  =  BigDecimal(NUMBER_FORMAT.parse(amount_).toString)
     val currency = values(9)
-   val  info = values(10)
-
-
-   val bs = BankStatement(bid, companyIban, postingdate, valuedate,  postingtext, purpose, beneficiary
-     , accountno, bankCode, amount, currency, info, COMPANY, companyIban)
+    val  info = values(10)
+    val bs = BankStatement(bid, companyIban, postingdate, valuedate,  postingtext, purpose, beneficiary
+      , accountno, bankCode, amount, currency, info, COMPANY, companyIban)
     println ("BankStatement>>"+bs)
     bs
   }
+
 }
 
 final case class Company(
