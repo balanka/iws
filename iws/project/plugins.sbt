@@ -11,3 +11,4 @@ addSbtPlugin("com.47deg" % "sbt-microsites" % "1.1.2")
 
 // Easily manage scalac settings across scala versions with this:
 addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.1.17")
+addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.1")
