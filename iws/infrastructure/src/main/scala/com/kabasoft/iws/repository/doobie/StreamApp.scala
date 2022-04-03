@@ -3,6 +3,7 @@ import com.kabasoft.iws.domain.BankStatement
 
 import java.nio.file.{Files, Paths}
 import zio._
+import zio.blocking.Blocking
 import zio.stream._
 
 object StreamApp extends zio.App {
@@ -21,7 +22,7 @@ object StreamApp extends zio.App {
     //.tap(putStrLn(_))
     .runDrain
 
-  val streamOfFileNames = ZStream
+   def getStreamFromPath(path:String):ZStream[Blocking, Throwable, BankStatement] = ZStream
     .fromJavaStream(Files.walk(Paths.get(path)))
     .filter(p => !Files.isDirectory(p) && p.toString().endsWith(extension))
     .flatMap { files =>
@@ -31,8 +32,7 @@ object StreamApp extends zio.App {
         .filterNot(p => p.startsWith(HEADER))
         .map(x=> BankStatement.from(x.replaceAll(CHAR, "")))
     }
-    .runDrain
 
   def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] =
-    streamOfFileNames.exitCode
+    getStreamFromPath(path).runDrain.exitCode
 }
