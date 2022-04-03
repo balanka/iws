@@ -939,7 +939,7 @@ object BankStatement {
   val  COMPANY_IBAN="DE47480501610043006329"
   val zoneId = ZoneId.of( "Europe/Berlin" )
   val DATE_FORMAT = "dd.MM.yyyy"
-  val CHAR = "\""
+  val FIELD_SEPARATOR = ';'
   val NUMBER_FORMAT = NumberFormat.getInstance(Locale.GERMAN);
 
    def   fullDate (partialDate:String):Instant = {
@@ -947,13 +947,13 @@ object BankStatement {
        val pYear= partialDate.substring(index+1)
        val fullDate = partialDate.substring(0,index+1).concat(CENTURY.concat(pYear))
       LocalDate.parse(fullDate, DateTimeFormatter.ofPattern(DATE_FORMAT))
-       .atStartOfDay(zoneId).toInstant()
+        .atStartOfDay(zoneId).toInstant
 
    }
 
 
   def from(s:String ) = {
-   val values= s.split(';')
+   val values= s.split(FIELD_SEPARATOR)
     val companyIban = values(0)
     val bid = -1L
     val date1_ = values(1)

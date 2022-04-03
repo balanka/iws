@@ -20,8 +20,6 @@ object StreamApp extends zio.App {
     .take(10)
     //.tap(putStrLn(_))
     .runDrain
-  def transform(s: String) = BankStatement.from(s)
-
 
   val streamOfFileNames = ZStream
     .fromJavaStream(Files.walk(Paths.get(path)))
@@ -31,8 +29,7 @@ object StreamApp extends zio.App {
         .fromFile(files)
         .transduce(ZTransducer.utf8Decode >>> ZTransducer.splitLines)
         .filterNot(p => p.startsWith(HEADER))
-        .map(x=> x.replaceAll(CHAR, ""))
-        .map(x=>transform( x))
+        .map(x=> BankStatement.from(x.replaceAll(CHAR, "")))
     }
     .runDrain
 
