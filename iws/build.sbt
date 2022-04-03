@@ -48,7 +48,7 @@ val H2Version = "1.4.200"
 val zioVersion = "1.0.3"
 
 
-
+scalacOptions += "-target:jvm-17"
 lazy val commonDependencies = Seq(
   "org.typelevel" %% "cats-core"   % catsVersion,
  // "org.typelevel" %% "cats-effect" % catsEffectVersion,
@@ -94,6 +94,8 @@ lazy val iws = project
   .in(file("."))
   .aggregate(domain, application, infrastructure, userAPI)
   .dependsOn(domain, application, infrastructure, userAPI)
+  .enablePlugins(NativeImagePlugin)
+  .settings(  mainClass.in(Compile) := Some("com.kabasoft.iws.Server"))
 
 lazy val domain = project
   .in(file("domain"))
@@ -133,8 +135,12 @@ lazy val userAPI = project
     //"dev.zio"    %% "zio-json-interop-http4s" % ZioJsonVersion,
   ))
   .settings(Seq(
-    fork in run := true,
-    cancelable in Global := true
+    //fork in run := true,
+    cancelable in Global := true,
+    mainClass.in(Compile) := Some("com.kabasoft.iws.Server")
+    //mainClass (Compile, packageBin)   := Some("com.kabasoft.iws.Server")
+    // mainClass.in(Compile) := Some("com.kabasoft.iws.Server")
+    //Compile / mainClass := Some("com.kabasoft.iws.Server")
   ))
   .dependsOn(domain, application, infrastructure)
 addCompilerPlugin("org.typelevel" % "kind-projector" % KindProjectorVersion cross CrossVersion.full)
