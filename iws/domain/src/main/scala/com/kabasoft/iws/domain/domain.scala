@@ -962,7 +962,7 @@ object BankStatement {
     val bid = -1L
     val date1_ = values(1)
     val date2 = values(2)
-    val date1 = if (!date1_.trim.isEmpty) date1_ else date2
+    val date1 = if (date1_.trim.nonEmpty) date1_ else date2
     val postingdate = fullDate(date1)
     val valuedate  = fullDate(date2)
     //val depositor = values(3)
